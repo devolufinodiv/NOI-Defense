@@ -1,0 +1,10 @@
+project_id = "noi-defense"
+
+[functions.token-scan]
+# Reads are public: the scanner works without an account, which is the whole
+# pitch on the landing page.
+verify_jwt = false
+
+[functions.index-token]
+# Indexing costs real compute, so it must be attributable to a user.
+verify_jwt = true

@@ -1,0 +1,23 @@
+{
+  "name": "noi-defense-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Drains the index_jobs queue: walks a token's history and writes holders, early buyers, trades and health factors.",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "once": "tsx src/index.ts --once",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "dotenv": "^17.2.1",
+    "viem": "^2.31.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

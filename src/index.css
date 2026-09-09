@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Palette custom properties for both modes are emitted by the themeVars plugin
+   in tailwind.config.js — see src/design/tokens.js for the values. */
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-base font-sans text-primary antialiased;
+    font-optical-sizing: auto;
+    font-feature-settings: 'cv11' 1, 'ss01' 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-sans tracking-heading text-primary;
+  }
+
+  /* Focus is unmistakable — this is a keyboard-first investigation tool.
+     Raw CSS rather than @apply: opacity modifiers on nested colour keys aren't
+     resolvable from inside a base layer. */
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgb(var(--c-base)),
+      0 0 0 4px rgb(var(--c-accent-text));
+  }
+
+  ::selection {
+    background-color: rgb(var(--c-accent-text) / 0.35);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--c-border-strong));
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--c-text-muted));
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  /* Digits align and hold their width as values tick. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'cv11' 1;
+  }
+
+  /* ── Glass ──────────────────────────────────────────────────────────────
+     Glass is the house surface in BOTH modes. Dark mode leans on a translucent
+     ash gradient over blur; light mode uses a white translucency with a
+     stronger border, because on a pale ground the blur alone reads as fog
+     rather than as a material. */
+  .glass {
+    background-color: rgb(var(--c-surface) / 0.66);
+    backdrop-filter: blur(26px) saturate(150%);
+    -webkit-backdrop-filter: blur(26px) saturate(150%);
+  }
+
+  /* The premium card treatment: translucent gradient, a top-lit hairline drawn
+     as a masked pseudo-element so the light falls off *down* the edge instead
+     of ringing the box evenly, and a soft outer shadow. */
+  .glass-panel {
+    position: relative;
+    isolation: isolate;
+    background-image: theme('backgroundImage.ash-card'), theme('backgroundImage.ash-panel');
+    background-color: rgb(var(--c-card) / 0.72);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    box-shadow: theme('boxShadow.glass');
+  }
+  .glass-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    padding: 1px;
+    background-image: theme('backgroundImage.edge-light');
+    /* Mask the fill so only the 1px ring survives — a gradient border without
+       an extra wrapper element. */
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Light mode keeps the glass but raises opacity and softens the shadow:
+     the same alpha that reads as depth on black reads as dirt on white. */
+  :root[data-theme='light'] .glass-panel,
+  :root:not([data-theme='dark']) .glass-panel {
+    background-color: rgb(var(--c-card) / 0.78);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.9),
+      0 1px 2px 0 rgb(16 16 20 / 0.05),
+      0 12px 32px -16px rgb(16 16 20 / 0.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .glass-panel {
+      background-color: rgb(var(--c-card) / 0.72);
+      box-shadow: theme('boxShadow.glass');
+    }
+  }
+
+  /* Brushed-metal display type. Falls back to solid primary text where
+     background-clip:text is unsupported, so headings can never vanish. */
+  .chrome-text {
+    color: rgb(var(--c-text-primary));
+  }
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    .chrome-text {
+      background-image: theme('backgroundImage.chrome');
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+  }
+
+  /* Pill eyebrow used above every major section, as in the reference. */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-hairline
+      bg-raised/60 px-2.5 py-1 text-2xs font-medium text-secondary;
+  }
+
+  /* Backdrop blur is a real cost on low-end GPUs and a known jank source when
+     the surface behind it scrolls. Drop to a solid fill where unsupported. */
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass,
+    .glass-panel {
+      background-color: rgb(var(--c-card));
+    }
+  }
+
+  /* Hide the scrollbar on rails without losing scrollability. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  /* Glow, scan, sweep and rise-in are decorative — none carry meaning. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

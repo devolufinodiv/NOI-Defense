@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F7F8FA" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0A0C12" />
+    <meta
+      name="description"
+      content="NOI Defense — wallet and token intelligence for EVM chains."
+    />
+    <title>NOI Defense</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <script>
+      // Paint the correct theme before first render. Without this the page
+      // flashes the OS theme for a frame when the user has chosen the other one.
+      // Reads the same key as src/store/theme.ts — keep them in sync.
+      (function () {
+        try {
+          var raw = localStorage.getItem('noi.theme')
+          var pref = raw ? JSON.parse(raw).state.preference : 'system'
+          if (pref === 'light' || pref === 'dark') {
+            document.documentElement.setAttribute('data-theme', pref)
+          }
+        } catch (e) {
+          /* private mode, corrupt value — fall through to the OS preference */
+        }
+      })()
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
