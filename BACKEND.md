@@ -57,9 +57,53 @@ tokens people most want scanned — the old, busy ones. A worker drains
 `status in ('pending','running')`) guarantees one live job per token while
 letting completed jobs remain as history.
 
-**The worker is the next piece to build** and is not written yet. It needs a
-long-running host — a small container, a Railway/Fly service, or a scheduled
-GitHub Action — not an edge function.
+The worker lives in **`worker/`** and is built. It needs a long-running host — a
+small container, a Railway/Fly service, a systemd unit — not an edge function.
+
+```bash
+cd worker
+cp .env.example .env      # add SUPABASE_SERVICE_ROLE_KEY and ALCHEMY_API_KEY
+npm install
+npm start                 # or `npm run once` to drain a single job and exit
+```
+
+It holds the **service role key**, which bypasses RLS entirely. Never run it in
+a browser and never bundle it into the frontend.
+
+### What it does per job
+
+1. Reads ERC-20 metadata. `name`/`symbol` are optional in the standard and some
+   real tokens revert or return bytes32, so each is read independently and
+   degrades to a default rather than failing the job.
+2. Locates the deployment block by **binary search on `getCode`** — bytecode
+   presence is monotonic, so ~25 calls pin it exactly on any chain.
+3. Walks `Transfer` logs. The `eth_getLogs` span **self-tunes**: it halves on
+   failure down to a single block and grows back on success. A fixed floor was
+   wrong — "response too large" is a range error, and Base WETH blows the limit
+   at under 400 blocks.
+4. Derives holders, early buyers, health factors; writes them and marks the job
+   ready.
+
+### Concurrency and failure
+
+`claim_index_job` uses `FOR UPDATE SKIP LOCKED`, so N workers can run without
+ever being handed the same job and without one slow worker blocking the queue.
+A 30s heartbeat keeps `reap_stalled_index_jobs` from reclaiming live work; a
+worker that dies leaves a job that the reaper returns to `pending`, or fails
+after three attempts. SIGTERM drains the job in flight rather than stranding a
+half-written token.
+
+### The honesty rule
+
+`MAX_BLOCK_LOOKBACK` bounds each job so one ancient, busy token can't monopolise
+the worker. When the walk is capped, the derived balances are **net flow over the
+window, not balances** — an address that held throughout and moved nothing does
+not appear at all.
+
+So on a partial walk the worker **omits holder concentration and holder count
+entirely** and says why in `data-coverage`, rather than publishing a "top 10 hold
+79%" figure that is confidently wrong. Early buyers are skipped for the same
+reason. Raise the lookback past the token's age to get the full picture.
 
 ## Analytics and admin
 
