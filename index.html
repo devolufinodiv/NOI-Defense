@@ -24,6 +24,11 @@
       // Paint the correct theme before first render. Without this the page
       // flashes the OS theme for a frame when the user has chosen the other one.
       // Reads the same key as src/store/theme.ts — keep them in sync.
+      //
+      // ⚠ This script is allow-listed in netlify.toml by a sha256 CSP hash.
+      // Editing it changes the hash; `npm run build` verifies the two match and
+      // fails with the replacement value, so this cannot break production
+      // silently. See scripts/check-csp-hash.mjs.
       (function () {
         try {
           var raw = localStorage.getItem('noi.theme')

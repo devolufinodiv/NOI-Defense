@@ -1,0 +1,105 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# NOI Defense — Netlify deployment
+#
+# Only the frontend is deployed here. The indexing worker in worker/ is a
+# long-running process and does NOT belong on Netlify — see BACKEND.md.
+# ─────────────────────────────────────────────────────────────────────────────
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Pinned rather than left to Netlify's rolling default: an unannounced bump
+  # is a classic way for a build to start failing on a commit that changed
+  # nothing. 22 is the current LTS and satisfies Vite 5's Node >= 18.
+  NODE_VERSION = "22"
+  # `npm ci` from the committed lockfile — reproducible, and fails loudly if
+  # package.json and package-lock.json have drifted apart.
+  NPM_FLAGS = "--prefer-offline --no-audit --no-fund"
+
+# Deploy previews and branch builds get the same treatment as production.
+# Without this, a preview silently builds with production's env and confuses
+# analytics — the Supabase project is chosen per-context in the Netlify UI.
+[context.production.environment]
+  NODE_ENV = "production"
+
+[context.deploy-preview.environment]
+  NODE_ENV = "production"
+
+# ── SPA routing ──────────────────────────────────────────────────────────────
+# React Router owns /dashboard, /token/:address, /wallet/:address, /admin and
+# the rest. Without this rewrite, a direct visit or a refresh on any of them
+# 404s, because no such file exists on disk — and those are exactly the URLs
+# people share.
+#
+# Netlify serves a real file when one matches, so this never shadows assets.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ── Security headers ─────────────────────────────────────────────────────────
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    # Nothing here should ever be framed — clickjacking a wallet-analysis tool
+    # into approving something is a real attack shape.
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # No feature needs these; deny by default.
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    # Two years, subdomains included. Only add `preload` once you are certain,
+    # since removal from the preload list is slow.
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains"
+
+    # Content-Security-Policy.
+    #
+    # `connect-src https:` is deliberate and not laziness. RPC endpoints are
+    # user-configurable (VITE_RPC_URL_<chainId>), so any hardcoded allowlist
+    # would silently break chain reads the moment someone points at a different
+    # provider — across 11 networks with several public fallbacks each. The
+    # directives that actually stop XSS and clickjacking (script-src,
+    # object-src, base-uri, frame-ancestors) stay locked down.
+    #
+    # 'unsafe-inline' in style-src is required: the app sets inline styles for
+    # gauge geometry, brand-coloured token marks and the 3D hero transforms.
+    #
+    # The sha256 in script-src covers the inline theme-boot script in
+    # index.html, which must run before first paint to avoid a wrong-theme
+    # flash. A hash keeps 'unsafe-inline' out of script-src entirely.
+    # EDITING THAT SCRIPT CHANGES THE HASH — `npm run build` verifies it and
+    # fails if they drift, so this cannot rot silently.
+    Content-Security-Policy = """
+      default-src 'self';
+      script-src 'self' 'sha256-hlWX7zmMpsBhi5nT/Bgpim4nMGEIUNUvL8Awqn2rHg0=';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.googleusercontent.com;
+      connect-src 'self' https: wss:;
+      frame-src 'self' https://accounts.google.com;
+      form-action 'self' https://accounts.google.com;
+      frame-ancestors 'none';
+      base-uri 'self';
+      object-src 'none';
+      upgrade-insecure-requests
+    """
+
+# ── Caching ──────────────────────────────────────────────────────────────────
+# Vite content-hashes everything in /assets, so the filename changes whenever
+# the bytes do. That makes a one-year immutable cache safe and correct.
+[[headers]]
+  for = "/assets/*"
+
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# index.html must never be cached: it is the document that points at the hashed
+# assets, so a stale copy pins users to a previous deploy indefinitely.
+[[headers]]
+  for = "/index.html"
+
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

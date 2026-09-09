@@ -145,3 +145,40 @@ is deliberate: there is no path for a browser client to write token data.
 
 `watchlist` and `alerts` are owner-only via `auth.uid() = user_id` on both
 `using` and `with check`.
+
+## Deploying the frontend (Netlify)
+
+`netlify.toml` is committed. Connect the repo in Netlify and it picks up the
+build command, publish directory and Node version automatically.
+
+**Set the environment variables in the Netlify UI** — they are build-time
+(`VITE_*` is inlined by Vite), so a change needs a redeploy, not just a save:
+
+| Variable | Value |
+| --- | --- |
+| `VITE_SUPABASE_URL` | `https://rzhnmtfhlpviiagrnsdo.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | the publishable key |
+| `VITE_ALCHEMY_API_KEY` | optional but strongly recommended |
+| `VITE_CHAIN_ID` | `8453` |
+
+Then add the deployed origin in three places, or sign-in will fail:
+Supabase **URL Configuration** (Site URL + redirect), Google Cloud
+**Authorized JavaScript origins**, and Google **Authorized redirect URIs**.
+
+### Two things in netlify.toml worth knowing
+
+**The SPA rewrite is load-bearing.** `/token/:address` and friends exist only in
+the router. Without `/* → /index.html 200`, a shared scan link or a refresh
+returns 404 — and shared links are the point.
+
+**The CSP allow-lists the inline theme script by sha256.** That script must run
+before first paint to avoid a wrong-theme flash, and a hash keeps
+`'unsafe-inline'` out of `script-src` entirely. Editing it changes the hash, so
+`npm run build` runs `scripts/check-csp-hash.mjs`, which fails the build and
+prints the replacement value. A dev server sends no CSP, so without that check
+the breakage would only appear in production.
+
+`connect-src` is deliberately broad (`https:`). RPC endpoints are configurable
+per chain via `VITE_RPC_URL_<chainId>`, so a hardcoded allow-list would break
+chain reads the moment someone changed provider. The directives that actually
+stop XSS and clickjacking stay locked down.
