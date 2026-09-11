@@ -55,76 +55,103 @@ interface MarketData {
  * a slow upstream be reported as "this token is not tradable", which is a
  * confident claim we have not earned.
  */
-async function fetchMarket(chainId: number, address: string): Promise<MarketData | 'none' | null> {
-  const slug = MARKET_SLUG[chainId]
-  if (!slug) return null
-
-  const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`, {
-    headers: { accept: 'application/json' },
-  })
-  if (!res.ok) return null
-
-  const body = await res.json()
-  const all = Array.isArray(body?.pairs) ? body.pairs : []
-  const ours = address.toLowerCase()
+/** Normalises raw pair records into the fields we care about. */
+function summarise(pairs: Array<Record<string, unknown>>, ours: string): MarketData | 'none' {
   const side = (p: Record<string, unknown>, key: string) =>
     ((p?.[key] as Record<string, string> | undefined)?.address ?? '').toLowerCase()
 
-  const onChain = all.filter((p: Record<string, unknown>) => p?.chainId === slug)
+  const asBase = pairs.filter((p) => side(p, 'baseToken') === ours)
+  const asQuote = pairs.filter((p) => side(p, 'quoteToken') === ours)
 
-  // Which side of the pair our token sits on decides everything below. The
-  // endpoint returns pairs where the address appears as EITHER base or quote,
-  // and a pair's priceUsd/fdv/name describe the BASE token only. Taking the
-  // deepest pair blindly reported a quote-side asset (USDC) as whatever was
-  // trading against it — wrong name, wrong price.
-  const asBase = onChain.filter((p: Record<string, unknown>) => side(p, 'baseToken') === ours)
-  const asQuote = onChain.filter((p: Record<string, unknown>) => side(p, 'quoteToken') === ours)
-
-  const relevant = asBase.length > 0 ? asBase : asQuote
-  if (relevant.length === 0) return 'none'
-  const isBase = asBase.length > 0
-
-  // Deepest pool is the honest reference: a thin pool's quote moves on a single
-  // trade and would misrepresent the token.
-  const deepest = relevant.reduce((best: Record<string, unknown>, p: Record<string, unknown>) => {
-    const a = Number((p?.liquidity as Record<string, number>)?.usd ?? 0)
-    const b = Number((best?.liquidity as Record<string, number>)?.usd ?? 0)
-    return a > b ? p : best
-  }, relevant[0])
+  // Every pool holding the token backs it, whichever side it sits on. Counting
+  // one side only reported Ethereum USDT as having $1.8k of depth, because it
+  // is the base token in three obscure pools and the quote token in thousands
+  // of real ones.
+  const holding = [...asBase, ...asQuote]
+  if (holding.length === 0) return 'none'
 
   const num = (v: unknown) => {
     const n = Number(v)
     return Number.isFinite(n) ? n : null
   }
 
-  const self = (isBase ? deepest.baseToken : deepest.quoteToken) as
+  const deepestOf = (list: Array<Record<string, unknown>>) =>
+    list.reduce((best, p) => {
+      const x = Number((p?.liquidity as Record<string, number>)?.usd ?? 0)
+      const y = Number((best?.liquidity as Record<string, number>)?.usd ?? 0)
+      return x > y ? p : best
+    }, list[0])
+
+  // Price, change and FDV are BASE-token figures, so they may only be read from
+  // a pair where our token is the base. Identity falls back to the quote side
+  // for assets that are never quoted directly.
+  const priced = asBase.length > 0 ? deepestOf(asBase) : null
+  const named = priced ?? deepestOf(asQuote)
+  const self = (priced ? named.baseToken : named.quoteToken) as
     | Record<string, string>
     | undefined
+  const primary = deepestOf(holding)
 
   return {
-    // Price, change and FDV are base-token figures. When our token is only ever
-    // the quote side we report them as unknown rather than publishing the
-    // counterparty's numbers under this token's name.
-    priceUsd: isBase ? num(deepest.priceUsd) : null,
-    change24h: isBase ? num((deepest.priceChange as Record<string, number>)?.h24) : null,
-    fdvUsd: isBase ? num(deepest.fdv) : null,
-    // Liquidity is real either way: it is depth that actually backs an exit,
-    // and it is summed across venues rather than read from one pool.
-    liquidityUsd: relevant.reduce(
-      (sum: number, p: Record<string, unknown>) =>
-        sum + (num((p?.liquidity as Record<string, number>)?.usd) ?? 0),
+    priceUsd: priced ? num(priced.priceUsd) : null,
+    change24h: priced ? num((priced.priceChange as Record<string, number>)?.h24) : null,
+    fdvUsd: priced ? num(priced.fdv) : null,
+    liquidityUsd: holding.reduce(
+      (sum, p) => sum + (num((p?.liquidity as Record<string, number>)?.usd) ?? 0),
       0,
     ),
-    volume24hUsd: relevant.reduce(
-      (sum: number, p: Record<string, unknown>) =>
-        sum + (num((p?.volume as Record<string, number>)?.h24) ?? 0),
+    volume24hUsd: holding.reduce(
+      (sum, p) => sum + (num((p?.volume as Record<string, number>)?.h24) ?? 0),
       0,
     ),
-    pairCount: relevant.length,
-    primaryVenue: typeof deepest.dexId === 'string' ? deepest.dexId : null,
+    pairCount: holding.length,
+    primaryVenue: typeof primary.dexId === 'string' ? primary.dexId : null,
     name: self?.name ?? null,
     symbol: self?.symbol ?? null,
   }
+}
+
+/**
+ * `'none'` means we checked and there genuinely are no pools. `null` (a throw
+ * or a timeout) means we could not check. Collapsing the two would let a slow
+ * upstream be reported as "this token is not tradable".
+ *
+ * The chain-scoped endpoint is tried first. The global one returns pairs across
+ * every network and truncates the list, so filtering it down to one chain threw
+ * most pools away: Ethereum USDC came back with a single pair and USDT with
+ * none at all. That under-reported liquidity for every token, not only the ones
+ * that vanished entirely.
+ */
+async function fetchMarket(chainId: number, address: string): Promise<MarketData | 'none' | null> {
+  const slug = MARKET_SLUG[chainId]
+  if (!slug) return null
+
+  const ours = address.toLowerCase()
+
+  const scoped = await fetch(`https://api.dexscreener.com/token-pairs/v1/${slug}/${address}`, {
+    headers: { accept: 'application/json' },
+  })
+
+  if (scoped.ok) {
+    const body = await scoped.json()
+    // This endpoint answers with a bare array of pairs, already chain-scoped.
+    const pairs = Array.isArray(body) ? body : Array.isArray(body?.pairs) ? body.pairs : []
+    if (pairs.length > 0) return summarise(pairs, ours)
+    // An empty array is a real answer, but fall through once in case the token
+    // is only listed under the older index.
+  }
+
+  const global = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`, {
+    headers: { accept: 'application/json' },
+  })
+  if (!global.ok) return null
+
+  const body = await global.json()
+  const all = Array.isArray(body?.pairs) ? body.pairs : []
+  return summarise(
+    all.filter((p: Record<string, unknown>) => p?.chainId === slug),
+    ours,
+  )
 }
 
 interface SafetyData {

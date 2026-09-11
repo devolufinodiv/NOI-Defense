@@ -2,6 +2,7 @@ import { clientFor, sleep } from './rpc.js'
 import { config } from './config.js'
 import { indexToken } from './indexer.js'
 import { claimJob, finishJob, heartbeat, markTokenFailed, persist, reapStalled } from './store.js'
+import { runMonitorPass } from './monitor.js'
 
 const runOnce = process.argv.includes('--once')
 
@@ -107,8 +108,27 @@ async function main() {
   if (reaped) log('worker.reaped', { jobs: reaped })
 
   let idleTicks = 0
+  let lastMonitorAt = 0
+
+  // Watchlist monitoring shares this process. It is cheap (one batched request
+  // per chain) and runs on its own cadence rather than per loop iteration, so a
+  // busy index queue cannot starve it and an idle one cannot hammer the feed.
+  const monitorEveryMs = config.monitorIntervalMs
+
+  async function maybeMonitor() {
+    if (Date.now() - lastMonitorAt < monitorEveryMs) return
+    lastMonitorAt = Date.now()
+    try {
+      const raised = await runMonitorPass(log)
+      if (raised > 0) log('monitor.pass', { alerts: raised })
+    } catch (error) {
+      log('monitor.failed', { error: error instanceof Error ? error.message : String(error) })
+    }
+  }
 
   while (!shuttingDown) {
+    await maybeMonitor()
+
     let job = null
     try {
       job = await claimJob()

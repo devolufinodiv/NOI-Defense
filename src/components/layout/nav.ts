@@ -52,7 +52,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Monitor',
     items: [
-      { to: '/alerts', label: 'Alerts', short: 'Alerts', icon: Bell, count: 3 },
+      { to: '/alerts', label: 'Alerts', short: 'Alerts', icon: Bell },
       { to: '/rewards', label: 'Rewards', short: 'Points', icon: Sparkles },
     ],
   },

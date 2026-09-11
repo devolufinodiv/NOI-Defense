@@ -15,6 +15,7 @@ import { VerdictCard } from '@/features/scan/components/VerdictCard'
 import { ScanFacts } from '@/features/scan/components/ScanFacts'
 import { HolderMapLink } from '@/features/scan/components/HolderMapLink'
 import { AdvancedDetails } from '@/features/scan/components/AdvancedDetails'
+import { WatchButton } from '@/features/watchlist/WatchButton'
 
 function Problem({
   title,
@@ -108,6 +109,17 @@ export function TokenDetail() {
               safety={scan.data?.safety}
               loading={scan.isLoading}
             />
+
+            {/* Offered right under the verdict: the moment somebody decides a
+                token is worth following is while they are reading its scan. */}
+            <div className="glass-panel rounded-lg border border-hairline p-4">
+              <WatchButton
+                chainId={chainId}
+                address={address}
+                symbol={scan.data?.token.symbol}
+                name={scan.data?.token.name}
+              />
+            </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <HolderMapLink chainId={chainId} address={address} subject="token" />

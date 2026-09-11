@@ -6,6 +6,7 @@ import { Logo } from '@/components/brand/Logo'
 import { useUiStore } from '@/store/ui'
 import { displayName, useAuth } from '@/store/auth'
 import { useIsAdmin } from '@/features/admin/queries'
+import { useUnreadAlertCount } from '@/features/watchlist/queries'
 import { NAV_GROUPS } from './nav'
 
 /**
@@ -49,6 +50,7 @@ function Greeting() {
 /** Desktop rail. Below `md`, navigation moves to <BottomTabBar />. */
 export function Sidebar() {
   const { isAdmin } = useIsAdmin()
+  const unread = useUnreadAlertCount()
   const pinnedCollapsed = useUiStore((state) => state.sidebarCollapsed)
   const toggle = useUiStore((state) => state.toggleSidebar)
   const [hovered, setHovered] = useState(false)
@@ -155,9 +157,9 @@ export function Sidebar() {
                                 {item.tag}
                               </span>
                             ) : null}
-                            {item.count ? (
+                            {(item.to === '/alerts' ? unread : item.count) ? (
                               <span className="tabular shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-2xs font-semibold text-accent-text">
-                                {item.count}
+                                {item.to === '/alerts' ? unread : item.count}
                               </span>
                             ) : null}
                           </>

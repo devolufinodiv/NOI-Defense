@@ -1,174 +1,39 @@
 import { useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   ArrowRight,
-  ArrowUpRight,
   Clock,
-  Filter,
   Info,
   ShieldAlert,
   TriangleAlert,
 } from 'lucide-react'
 import { PageHeader, SectionHeading } from '@/components/layout/AppShell'
 import { Card, CardBody, CardHeader, Eyebrow } from '@/components/ui/Card'
-import { Badge, DeltaPill, MockBadge } from '@/components/ui/Badge'
+import { DeltaPill, MockBadge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { DataTable, type Column } from '@/components/ui/DataTable'
 import { HashRef } from '@/components/ui/Address'
 import { TokenMark } from '@/components/ui/TokenMark'
 import { RingDot } from '@/components/ui/LiveDot'
 import { CoinCard } from '@/components/market/CoinCard'
+import { MarketOverview } from '@/features/market/MarketOverview'
 import {
   formatRelativeTime,
-  formatTokenAmount,
   formatUsd,
   toneOf,
 } from '@/lib/format'
 import {
   MOCK_ALERTS,
   MOCK_TOKENS,
-  MOCK_TRANSFERS,
   MOCK_WATCHED_WALLETS,
   mockSeriesFor,
-  type MockToken,
-  type MockTransfer,
 } from '@/mock'
 
 // ⚠️ Every figure on this page is a fixture from src/mock — see the MockBadge in
 // the header. Phase 1 replaces these with Alchemy reads.
 
-const marketColumns: Array<Column<MockToken>> = [
-  {
-    key: 'rank',
-    header: 'No',
-    width: '64px',
-    hideOnMobile: true,
-    render: (_token, index) => (
-      <span className="tabular text-xs text-muted">#{index + 1}</span>
-    ),
-  },
-  {
-    key: 'token',
-    header: 'Token',
-    sortValue: (token) => token.symbol,
-    render: (token) => (
-      <div className="flex items-center gap-3">
-        <TokenMark symbol={token.symbol} size="sm" />
-        <span className="max-w-[9.5rem] truncate font-medium text-primary md:max-w-none">
-          {token.name}
-        </span>
-        <span className="hidden text-xs text-muted sm:inline">{token.symbol}</span>
-      </div>
-    ),
-  },
-  {
-    key: 'contract',
-    header: 'Contract',
-    hideOnMobile: true,
-    render: (token) => (
-      <HashRef value={token.address} kind="token" to={`/token/${token.address}`} />
-    ),
-  },
-  {
-    key: 'price',
-    header: 'Price',
-    align: 'right',
-    sortValue: (token) => token.priceUsd,
-    render: (token) => (
-      <span className="tabular font-medium text-primary">{formatUsd(token.priceUsd)}</span>
-    ),
-  },
-  {
-    key: 'change',
-    header: '24h',
-    align: 'right',
-    sortValue: (token) => token.change24h,
-    render: (token) => <DeltaPill value={token.change24h} showIcon={false} />,
-  },
-  {
-    key: 'liquidity',
-    header: 'Liquidity',
-    align: 'right',
-    hideOnMobile: true,
-    sortValue: (token) => token.liquidityUsd,
-    render: (token) => (
-      <span className="tabular text-secondary">
-        {formatUsd(token.liquidityUsd, { compact: true })}
-      </span>
-    ),
-  },
-  {
-    key: 'health',
-    header: 'Health',
-    align: 'right',
-    hideOnMobile: true,
-    sortValue: (token) => token.healthScore,
-    render: (token) => (
-      <Badge
-        tone={token.healthScore >= 70 ? 'positive' : token.healthScore >= 50 ? 'warning' : 'negative'}
-      >
-        {token.healthScore} / 100
-      </Badge>
-    ),
-  },
-]
 
-const transferColumns: Array<Column<MockTransfer>> = [
-  {
-    key: 'hash',
-    header: 'Transaction',
-    render: (transfer) => <HashRef value={transfer.hash} kind="tx" />,
-  },
-  {
-    key: 'flow',
-    header: 'Flow',
-    hideOnMobile: true,
-    render: (transfer) => (
-      <div className="flex items-center gap-2">
-        <HashRef value={transfer.from} to={`/wallet/${transfer.from}`} hideExplorer />
-        <ArrowUpRight className="h-3.5 w-3.5 shrink-0 rotate-45 text-muted" strokeWidth={2} aria-hidden />
-        <HashRef value={transfer.to} to={`/wallet/${transfer.to}`} hideExplorer />
-      </div>
-    ),
-  },
-  {
-    key: 'value',
-    header: 'Amount',
-    align: 'right',
-    sortValue: (transfer) => transfer.valueRaw,
-    render: (transfer) => (
-      <span className="tabular font-medium text-primary">
-        {formatTokenAmount(transfer.valueRaw, transfer.decimals, { compact: true })}{' '}
-        <span className="font-normal text-muted">{transfer.symbol}</span>
-      </span>
-    ),
-  },
-  {
-    key: 'direction',
-    header: 'Direction',
-    align: 'right',
-    hideOnMobile: true,
-    render: (transfer) => (
-      <Badge tone={transfer.direction === 'in' ? 'positive' : 'neutral'}>
-        {transfer.direction === 'in' ? 'Inflow' : 'Outflow'}
-      </Badge>
-    ),
-  },
-  {
-    key: 'age',
-    header: 'Age',
-    align: 'right',
-    sortValue: (transfer) => transfer.timestampUnix,
-    render: (transfer) => (
-      <span className="tabular text-secondary">
-        {formatRelativeTime(transfer.timestampUnix)}
-      </span>
-    ),
-  },
-]
 
 export function Dashboard() {
-  const navigate = useNavigate()
 
   const featured = useMemo(
     () =>
@@ -357,46 +222,27 @@ export function Dashboard() {
           </Card>
         </section>
 
-        {/* Market table */}
+        {/* Recently checked, across everyone using the app */}
         <section>
           <SectionHeading
             eyebrow={
               <Eyebrow icon={<Clock className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}>
-                Live updates
+                Updated continuously
               </Eyebrow>
             }
             title="Market overview"
             actions={
-              <Button variant="subtle" size="sm">
-                <Filter className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                All
-              </Button>
+              <Link to="/token">
+                <Button variant="secondary" size="sm">
+                  Check a token
+                  <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                </Button>
+              </Link>
             }
           />
-          <Card className="overflow-hidden">
-            <DataTable
-              columns={marketColumns}
-              rows={MOCK_TOKENS}
-              rowKey={(token) => token.address}
-              onRowClick={(token) => navigate(`/token/${token.address}`)}
-            />
-          </Card>
+          <MarketOverview limit={12} />
         </section>
 
-        {/* Recent flow */}
-        <section>
-          <SectionHeading
-            eyebrow={<Eyebrow>Counterparty flow</Eyebrow>}
-            title="Recent transfers"
-          />
-          <Card className="overflow-hidden">
-            <DataTable
-              columns={transferColumns}
-              rows={MOCK_TRANSFERS}
-              rowKey={(transfer) => transfer.hash}
-            />
-          </Card>
-        </section>
       </div>
     </>
   )

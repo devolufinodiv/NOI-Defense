@@ -43,6 +43,8 @@ export const config = {
   alchemyKey: process.env.ALCHEMY_API_KEY?.trim() ?? '',
   pollIntervalMs: num('POLL_INTERVAL_SECONDS', 5) * 1_000,
   maxLookback: BigInt(num('MAX_BLOCK_LOOKBACK', 400_000)),
+  /** How often to poll the market feed for watched tokens. */
+  monitorIntervalMs: num('MONITOR_INTERVAL_MINUTES', 5) * 60_000,
   /** Identifies this process in index_jobs.worker_id, for debugging a fleet. */
   workerId: `${process.env.HOSTNAME ?? 'worker'}-${process.pid}`,
 }

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/cn'
+import { useUnreadAlertCount } from '@/features/watchlist/queries'
 import { NAV_ITEMS } from './nav'
 
 /**
@@ -7,6 +8,7 @@ import { NAV_ITEMS } from './nav'
  * which also matters once this is wrapped with Capacitor.
  */
 export function BottomTabBar() {
+  const unread = useUnreadAlertCount()
   const items = NAV_ITEMS.filter((item) => !item.desktopOnly).slice(0, 5)
 
   return (
@@ -38,9 +40,9 @@ export function BottomTabBar() {
                   ) : null}
                   <span className="relative">
                     <item.icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-                    {item.count ? (
+                    {(item.to === '/alerts' ? unread : item.count) ? (
                       <span className="absolute -right-2 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-on">
-                        {item.count}
+                        {item.to === '/alerts' ? unread : item.count}
                       </span>
                     ) : null}
                   </span>
