@@ -8,6 +8,7 @@ import { HashRef } from '@/components/ui/Address'
 import { Badge } from '@/components/ui/Badge'
 import { Eyebrow } from '@/components/ui/Card'
 import { ScanForm } from '@/components/scan/ScanForm'
+import { HolderMapLink } from '@/features/scan/components/HolderMapLink'
 import { PhaseStub } from './PhaseStub'
 
 export function WalletDetail() {
@@ -37,8 +38,9 @@ export function WalletDetail() {
           )
         }
       />
-      <div className="w-full px-4 sm:px-6 md:px-8 xl:px-10">
+      <div className="w-full space-y-6 px-4 sm:px-6 md:px-8 xl:px-10">
         <ScanForm target="wallet" />
+        {valid ? <HolderMapLink chainId={chainId} address={address} subject="wallet" /> : null}
       </div>
       <PhaseStub
         phase="Phase 3"

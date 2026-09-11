@@ -9,3 +9,6 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 *.tsbuildinfo
+
+# Supabase CLI scratch
+supabase/.temp/

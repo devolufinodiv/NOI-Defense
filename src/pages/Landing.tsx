@@ -12,83 +12,45 @@ import { Logo } from '@/components/brand/Logo'
 import { ScanForm } from '@/components/scan/ScanForm'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SignInButton } from '@/components/auth/SignInButton'
-import { DeltaPill } from '@/components/ui/Badge'
-import { TokenMark } from '@/components/ui/TokenMark'
-import { Sparkline } from '@/components/charts/Sparkline'
-import { HealthGauge } from '@/features/token/components/HealthGauge'
-import { Hero3D } from './landing/Hero3D'
-import { ChromeStar, ChromeSpark } from './landing/ChromeStar'
-import { HeroExamples } from './landing/HeroExamples'
-import { MOCK_TOKENS, mockSeriesFor } from '@/mock'
-import { splitQuote } from '@/lib/format'
 
 const CAPABILITIES = [
   {
     icon: ShieldCheck,
-    title: 'Token health score',
-    body: 'One number from seven weighted checks — holder concentration, liquidity depth, LP lock, owner privileges, transfer tax, source verification and contract age. Every factor is shown, so you can disagree with the score.',
-  },
-  {
-    icon: Users,
-    title: 'Early buyer discovery',
-    body: 'The first wallets in from the creation block, what they paid, and whether they are still holding, partially out, or gone. The exit pattern usually says more than the chart.',
+    title: 'Can you actually sell it?',
+    body: 'Some tokens let you buy but quietly block you from selling. We run a test purchase and a test sale before you risk anything, and tell you plainly if the sale fails.',
   },
   {
     icon: Wallet,
-    title: 'Wallet tracing',
-    body: 'Realised P&L, win rate and holdings for any address, plus a force-directed map of who it actually trades with. Tag wallets and follow them across tokens.',
+    title: 'What will it cost you?',
+    body: 'Many tokens take a cut of every trade. We show the exact fee to buy and to sell, so a 30% exit fee is not a surprise you discover on the way out.',
   },
   {
-    icon: GitCompareArrows,
-    title: 'Cohort overlap',
-    body: 'Compare two tokens and see which addresses hold both, who bought early in one and late in the other, and how much of each holder set is shared.',
-  },
-  {
-    icon: Bell,
-    title: 'Transaction alerts',
-    body: 'Rules that fire on transfers, swaps and approvals from watched addresses — large sells, liquidity pulls, concentration spikes — delivered to your feed.',
+    icon: Users,
+    title: 'Who owns most of it?',
+    body: 'If a handful of wallets hold nearly all the supply, any one of them can crash the price. We show the biggest holders and which wallets look connected.',
   },
   {
     icon: Radar,
-    title: 'Every EVM chain',
-    body: 'Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Scroll and zkSync. Pick the network at scan time — the same tooling, wherever the contract lives.',
+    title: 'Is there enough to trade against?',
+    body: 'A token can look valuable and still be impossible to exit. We measure how much real money backs it, and warn you when the pool is too thin to sell into.',
+  },
+  {
+    icon: Bell,
+    title: 'Tell me if something changes',
+    body: 'Save anything you are watching and get told when a large holder sells, liquidity is pulled, or ownership suddenly concentrates.',
+  },
+  {
+    icon: GitCompareArrows,
+    title: 'Nine networks, one habit',
+    body: 'Ethereum, Base, BNB Chain, Arbitrum, Optimism, Polygon, Avalanche, Scroll and zkSync. Same checks, same plain answer, wherever the token lives.',
   },
 ]
 
 const STEPS = [
-  { n: '01', title: 'Paste an address', body: 'Any token contract or wallet. We work out which it is.' },
-  { n: '02', title: 'Read the breakdown', body: 'Score, holders, early buyers, live flow — with the reasoning shown.' },
-  { n: '03', title: 'Track what matters', body: 'Add it to a watchlist and set alerts so you hear about the next move.' },
+  { n: '01', title: 'Paste the address', body: 'Copy it from the project’s own site. Never from a message someone sent you.' },
+  { n: '02', title: 'Read the verdict', body: 'One plain answer at the top, with the reasons underneath in normal English.' },
+  { n: '03', title: 'Decide with your eyes open', body: 'Keep watching it if you like, and earn points while you learn the habit.' },
 ]
-
-/** Floating quote card used as a 3D hero prop. */
-function FloatingQuote({ index, className }: { index: number; className?: string }) {
-  const token = MOCK_TOKENS[index]
-  const quote = splitQuote(token.priceUsd)
-  return (
-    <div
-      className={`glass-panel w-60 rounded-xl border border-hairline p-4 shadow-glass-lift ${className ?? ''}`}
-    >
-      <div className="flex items-center gap-2.5">
-        <TokenMark symbol={token.symbol} size="sm" />
-        <span className="text-sm font-medium text-primary">{token.symbol}</span>
-        <DeltaPill value={token.change24h} showIcon={false} className="ml-auto" />
-      </div>
-      <div className="tabular mt-3 text-xl font-semibold text-primary">
-        <span className="text-secondary">$</span>
-        {quote.whole}
-        {quote.fraction ? <span className="text-muted">.{quote.fraction}</span> : null}
-      </div>
-      <div className="mt-2 -mx-1">
-        <Sparkline
-          data={mockSeriesFor(token.symbol, token.change24h)}
-          tone={token.change24h >= 0 ? 'positive' : 'negative'}
-          height={48}
-        />
-      </div>
-    </div>
-  )
-}
 
 export function Landing() {
   return (
@@ -130,103 +92,43 @@ export function Landing() {
         </div>
       </header>
 
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
-      <section className="relative mx-auto max-w-6xl px-4 pb-24 pt-16 md:px-8 md:pt-24">
-        <Hero3D>
-          {(depth) => (
-            <div className="relative">
-              {/* Ornament sits deepest in the scene, so parallax moves it least
-                  and it never competes with the headline for attention. */}
-              <div
-                aria-hidden
-                style={depth(-60)}
-                className="pointer-events-none absolute -right-24 -top-28 hidden opacity-70 lg:block xl:-right-10"
-              >
-                <ChromeStar className="h-[26rem] w-[26rem] xl:h-[32rem] xl:w-[32rem]" />
-              </div>
-              <div
-                aria-hidden
-                style={depth(30)}
-                className="pointer-events-none absolute right-[26rem] top-4 hidden xl:block"
-              >
-                <ChromeSpark className="h-10 w-10 opacity-80" />
-              </div>
+      {/* ── Hero ────────────────────────────────────────────────────────────
+          One idea, one input, one line of reassurance.
 
-              <div style={depth(40)} className="relative z-10 max-w-3xl">
-                <span className="chip mb-6">
-                  Wallet &amp; token intelligence · every EVM chain
-                </span>
+          The previous version stacked a 3D parallax stage, a rotating chrome
+          star, three floating price cards, a stat row and an example rail. Each
+          was fine alone; together they competed with the one thing a visitor
+          needs to do, which is paste an address. Everything that did not serve
+          that is gone. What remains: the promise, the box, and permission to
+          try it without signing up. */}
+      <section className="relative mx-auto max-w-3xl px-4 pb-20 pt-20 text-center md:pt-28">
+        <span className="chip mx-auto">Free · no account needed</span>
 
-                <h1 className="chrome-text text-display-sm font-semibold tracking-tightest md:text-display">
-                  Follow the money.
-                  <br />
-                  Before it moves you.
-                </h1>
+        <h1 className="chrome-text mt-7 text-display-sm font-semibold tracking-tightest md:text-display">
+          Check before
+          <br />
+          you buy.
+        </h1>
 
-                <p className="mt-6 max-w-xl text-base leading-relaxed text-secondary">
-                  Paste any contract or wallet on any EVM chain. Get a health score with its
-                  reasoning shown, the first buyers and who is still holding, and live trade
-                  flow — while there is still time to act on it.
-                </p>
+        <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-secondary md:text-lg">
+          Paste any token address and we will tell you, in plain English, whether it looks safe —
+          and exactly what we found.
+        </p>
 
-                <div className="mt-9 max-w-2xl">
-                  <ScanForm target="auto" size="lg" />
-                  <HeroExamples />
-                </div>
-                <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4">
-                  {[
-                    { value: '11', label: 'EVM networks' },
-                    { value: '7', label: 'health checks per scan' },
-                    { value: '15s', label: 'live trade refresh' },
-                  ].map((stat) => (
-                    <div key={stat.label}>
-                      <dt className="sr-only">{stat.label}</dt>
-                      <dd>
-                        <span className="tabular block text-2xl font-semibold tracking-tightest text-primary">
-                          {stat.value}
-                        </span>
-                        <span className="mt-0.5 block text-xs text-muted">{stat.label}</span>
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
+        <div className="mx-auto mt-10 max-w-2xl text-left">
+          <ScanForm target="auto" size="lg" />
+        </div>
 
-              {/* Floating props. Hidden below xl: at narrower widths they would
-                  collide with the copy, and a cramped 3D scene reads as a bug. */}
-              <div
-                aria-hidden
-                style={depth(110)}
-                className="pointer-events-none absolute -right-4 top-0 hidden xl:block"
-              >
-                <FloatingQuote index={0} className="rotate-[-4deg]" />
-              </div>
-              <div
-                aria-hidden
-                style={depth(180)}
-                className="pointer-events-none absolute right-24 top-56 hidden xl:block"
-              >
-                <FloatingQuote index={2} className="rotate-[5deg]" />
-              </div>
-              <div
-                aria-hidden
-                style={depth(70)}
-                className="pointer-events-none absolute -right-16 top-[19rem] hidden xl:block"
-              >
-                <div className="glass-panel grid place-items-center rounded-xl border border-hairline p-5 shadow-glass-lift">
-                  <HealthGauge score={MOCK_TOKENS[0].healthScore} size={150} />
-                </div>
-              </div>
-            </div>
-          )}
-        </Hero3D>
+        <p className="mx-auto mt-4 max-w-md text-xs leading-relaxed text-muted">
+          Works on Ethereum, Base, BNB Chain and six more networks. Takes about three seconds.
+        </p>
       </section>
 
       {/* ── Capabilities ────────────────────────────────────────────────── */}
       <section id="what" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 md:px-8">
-        <span className="chip">What it does</span>
+        <span className="chip">What we check</span>
         <h2 className="chrome-text mt-2 max-w-2xl text-3xl font-semibold tracking-tightest md:text-4xl">
-          Six things worth knowing before you buy
+          What we check for you
         </h2>
 
         <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -273,16 +175,16 @@ export function Landing() {
       <section className="mx-auto max-w-6xl px-4 pb-24 md:px-8">
         <div className="glass-panel rounded-2xl border border-hairline p-8 text-center md:p-14">
           <h2 className="chrome-text mx-auto max-w-2xl text-3xl font-semibold tracking-tightest md:text-4xl">
-            Do your own research, with better instruments
+            Two minutes now beats a bad surprise later
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-secondary">
-            Scanning is free and needs no account. Sign in when you want watchlists and alerts
-            to follow you between sessions.
+            Every check is free and needs no account. Sign in only if you want your watchlist,
+            alerts and points to follow you between devices.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link to="/token">
               <span className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md bg-accent px-5 text-sm font-medium text-accent-on transition-colors duration-180 hover:bg-accent/90">
-                Scan a contract
+                Check a token
                 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden />
               </span>
             </Link>
@@ -307,7 +209,7 @@ export function Landing() {
             Design system
           </Link>
           <span className="text-muted">
-            Figures shown are synthetic while the indexer is being built.
+            Automated checks, not financial advice. Always risk only what you can afford to lose.
           </span>
         </div>
       </footer>

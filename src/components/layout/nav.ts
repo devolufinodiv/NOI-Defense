@@ -1,6 +1,7 @@
 import {
   Bell,
   ShieldCheck,
+  Sparkles,
   GitCompareArrows,
   LayoutGrid,
   Palette,
@@ -50,7 +51,10 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: 'Monitor',
-    items: [{ to: '/alerts', label: 'Alerts', short: 'Alerts', icon: Bell, count: 3 }],
+    items: [
+      { to: '/alerts', label: 'Alerts', short: 'Alerts', icon: Bell, count: 3 },
+      { to: '/rewards', label: 'Rewards', short: 'Points', icon: Sparkles },
+    ],
   },
   {
     label: 'System',

@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { Dashboard } from '@/pages/Dashboard'
 import { Admin } from '@/pages/Admin'
+import { Rewards } from '@/pages/Rewards'
 import { Landing } from '@/pages/Landing'
 import { ScanEntry } from '@/pages/ScanEntry'
 import { TokenDetail } from '@/pages/TokenDetail'
@@ -30,6 +31,7 @@ export function App() {
               <Route path="/wallet/:address" element={<WalletDetail />} />
               <Route path="/compare" element={<Compare />} />
               <Route path="/alerts" element={<Alerts />} />
+              <Route path="/rewards" element={<Rewards />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/style-guide" element={<StyleGuide />} />
               <Route path="*" element={<NotFound />} />

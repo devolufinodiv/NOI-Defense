@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn'
 import { Logo } from '@/components/brand/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SignInButton } from '@/components/auth/SignInButton'
+import { PointsBadge } from '@/features/points/PointsBadge'
 import { isValidAddress, normalizeAddress } from '@/lib/address'
 import { useChainStore } from '@/store/chain'
 import { NAV_ITEMS } from './nav'
@@ -120,6 +121,7 @@ export function TopBar() {
       </nav>
 
       <div className="ml-auto flex items-center gap-3 sm:min-w-0 sm:flex-1 sm:justify-end">
+        <PointsBadge className="hidden sm:flex" />
         <ThemeToggle />
         <SignInButton className="shrink-0" />
         {showSearch ? (

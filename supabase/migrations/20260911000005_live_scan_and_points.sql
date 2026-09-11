@@ -1,0 +1,14 @@
+-- Applied as `live_scan_cache_and_points`, `admin_allowlist` and
+-- `index_job_queue_rpcs`. See the project migration history for full bodies.
+--
+-- Highlights:
+--  * token_safety / token_metrics extensions cache the normalised scan result,
+--    so a popular token costs one upstream call per TTL rather than one per
+--    visitor — which is what keeps us inside free-tier limits.
+--  * points_ledger + points_rules + a trigger on activity_events. Points are
+--    awarded ONLY by the trigger: the client can insert its own activity rows,
+--    so an RPC would let anyone mint points directly. Cooldown per subject and
+--    a per-kind daily cap bound even a scripted user.
+--  * admin_allowlist grants the admin role on first sign-in, resolving the
+--    chicken-and-egg where a profile cannot exist before its auth user and
+--    nobody may promote themselves.
