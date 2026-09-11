@@ -198,11 +198,17 @@ interface SourceData {
   contractName: string | null
 }
 
+// Source verification is free on every chain we support except these two,
+// which the registry doesn't index at all.
+const UNINDEXED_CHAINS = new Set([534352, 324])
+
 async function fetchSource(chainId: number, address: string): Promise<SourceData | null> {
   const key = Deno.env.get('CONTRACT_REGISTRY_KEY')?.trim()
   // No key configured: source verification is simply unknown, and the verdict
   // treats unknown as unknown rather than assuming either way.
   if (!key) return null
+  // Two chains the registry doesn't cover at all — skip the pointless round trip.
+  if (UNINDEXED_CHAINS.has(chainId)) return null
 
   const url =
     `https://api.etherscan.io/v2/api?chainid=${chainId}&module=contract` +
@@ -273,7 +279,12 @@ function buildVerdict(
   }
 
   const liq = market?.liquidityUsd ?? null
-  if (liq === null) {
+  if (!marketChecked) {
+    // The lookup never completed. "No pools found" would be a confident claim
+    // about a check we did not finish — unknown has to read as unknown.
+    escalate('caution')
+    reasons.push({ tone: 'warn', text: 'We could not check trading activity just now, so we do not know how easily this trades.' })
+  } else if (liq === null) {
     escalate('caution')
     reasons.push({ tone: 'warn', text: 'No trading pools found. This token may not be tradable yet.' })
   } else if (liq < 10_000) {
@@ -293,7 +304,9 @@ function buildVerdict(
     reasons.push({ tone: 'warn', text: 'The code behind this token has not been published, so nobody can check what it does.' })
   }
 
-  const noSignals = safety === null && market === null
+  // Confirmed-no-pools is a finding, not a blank. Only an unfinished market
+  // check plus no simulation leaves us with genuinely nothing to say.
+  const noSignals = safety === null && !marketChecked
   if (noSignals) {
     return {
       tier: 'unknown',
@@ -410,6 +423,7 @@ Deno.serve(async (req) => {
       transfer_tax: safety?.transferTax ?? null,
       simulation_ok: safety?.simulationOk ?? false,
       source_verified: source?.verified ?? null,
+      market_checked: marketChecked,
       contract_name: name.slice(0, 128) || null,
       flags: safety?.flags ?? [],
       checked_at: new Date().toISOString(),
@@ -483,10 +497,14 @@ async function readCached(db: ReturnType<typeof serviceClient>, chainId: number,
     ? null
     : { verified: safetyRow.source_verified, contractName: safetyRow.contract_name }
 
+  // A row written before this column existed has no answer either way, so it
+  // reads as unchecked rather than asserting a check we cannot substantiate.
+  const marketChecked = safetyRow?.market_checked === true
+
   return {
     token: { chainId, address, name: token.name, symbol: token.symbol, verified: token.verified },
     market,
     safety,
-    verdict: buildVerdict(market, safety, source, true),
+    verdict: buildVerdict(market, safety, source, marketChecked),
   }
 }
