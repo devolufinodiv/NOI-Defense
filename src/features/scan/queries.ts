@@ -17,7 +17,7 @@ export const scanKeys = {
  * promise the landing page makes, and gating it would break the first thing a
  * newcomer tries.
  */
-async function runScan(chainId: number, address: string): Promise<ScanResult> {
+export async function runScan(chainId: number, address: string): Promise<ScanResult> {
   if (!hasSupabase) {
     throw new Error('Scanning is not configured yet. Add the project URL and key to .env.local.')
   }

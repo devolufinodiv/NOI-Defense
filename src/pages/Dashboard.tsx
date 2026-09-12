@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -14,7 +13,8 @@ import { Button } from '@/components/ui/Button'
 import { HashRef } from '@/components/ui/Address'
 import { TokenMark } from '@/components/ui/TokenMark'
 import { RingDot } from '@/components/ui/LiveDot'
-import { CoinCard } from '@/components/market/CoinCard'
+import { FeaturedScanCard } from '@/features/featured/FeaturedScanCard'
+import { useFeaturedTokens } from '@/features/featured/queries'
 import { MarketOverview } from '@/features/market/MarketOverview'
 import {
   formatRelativeTime,
@@ -25,24 +25,19 @@ import {
   MOCK_ALERTS,
   MOCK_TOKENS,
   MOCK_WATCHED_WALLETS,
-  mockSeriesFor,
 } from '@/mock'
 
-// ⚠️ Every figure on this page is a fixture from src/mock — see the MockBadge in
-// the header. Phase 1 replaces these with Alchemy reads.
-
-
+// Mixed page. The featured scans and the market overview are read live from the
+// database; the watchlist and alerts below are still fixtures from src/mock and
+// carry their own MockBadge. The badge belongs on the sections that are actually
+// mock — a page-wide one taught people to distrust the real figures too.
 
 export function Dashboard() {
+  const featured = useFeaturedTokens(6)
 
-  const featured = useMemo(
-    () =>
-      MOCK_TOKENS.slice(0, 3).map((token) => ({
-        token,
-        series: mockSeriesFor(token.symbol, token.change24h),
-      })),
-    [],
-  )
+  const updated = featured.dataUpdatedAt
+    ? formatRelativeTime(Math.floor(featured.dataUpdatedAt / 1000))
+    : null
 
 
   return (
@@ -50,11 +45,12 @@ export function Dashboard() {
       <PageHeader
         eyebrow={
           <div className="flex flex-wrap items-center gap-3">
-            <span className="chip">
-              <RingDot />
-              Last update: 2 min ago
-            </span>
-            <MockBadge />
+            {updated ? (
+              <span className="chip">
+                <RingDot />
+                Scan data updated {updated}
+              </span>
+            ) : null}
           </div>
         }
         title="Your research desk"
@@ -65,8 +61,8 @@ export function Dashboard() {
         {/* Featured token scans */}
         <section>
           <SectionHeading
-            eyebrow={<Eyebrow>Recently scanned</Eyebrow>}
-            title="Featured token scans"
+            eyebrow={<Eyebrow>Measured on this app</Eyebrow>}
+            title="Most scanned right now"
             actions={
               <Link to="/token">
                 <Button variant="secondary" size="sm">
@@ -76,27 +72,41 @@ export function Dashboard() {
               </Link>
             }
           />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {featured.map(({ token, series }) => (
-              <CoinCard
-                key={token.address}
-                symbol={token.symbol}
-                name={token.name}
-                pair={`${token.symbol}/USD`}
-                priceUsd={token.priceUsd}
-                change24h={token.change24h}
-                series={series}
-                to={`/token/${token.address}`}
-              />
-            ))}
-          </div>
+          {featured.isLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-56 animate-pulse rounded-xl border border-hairline bg-raised/40" />
+              ))}
+            </div>
+          ) : featured.data && featured.data.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {featured.data.map((token) => (
+                <FeaturedScanCard key={`${token.chainId}:${token.address}`} token={token} />
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardBody className="flex items-start gap-3">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted" strokeWidth={2} aria-hidden />
+                <p className="text-sm leading-relaxed text-secondary">
+                  Nothing has been scanned yet. This section fills itself with the contracts people
+                  check most — scan one and it will appear here.
+                </p>
+              </CardBody>
+            </Card>
+          )}
         </section>
 
         {/* Watchlist + alerts */}
         <section className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader
-              title="Your watchlist"
+              title={
+                <span className="flex flex-wrap items-center gap-2">
+                  Your watchlist
+                  <MockBadge />
+                </span>
+              }
               subtitle={`${MOCK_TOKENS.length} tokens · ${MOCK_WATCHED_WALLETS.length} wallets`}
               action={
                 <Link to="/token">
@@ -160,7 +170,12 @@ export function Dashboard() {
 
           <Card>
             <CardHeader
-              title="Alerts"
+              title={
+                <span className="flex flex-wrap items-center gap-2">
+                  Alerts
+                  <MockBadge />
+                </span>
+              }
               subtitle={`${MOCK_ALERTS.filter((a) => a.unread).length} unread`}
               action={
                 <Link to="/alerts">

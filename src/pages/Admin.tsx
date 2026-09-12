@@ -22,6 +22,7 @@ import { LiveDot } from '@/components/ui/LiveDot'
 import { PriceChart } from '@/components/charts/PriceChart'
 import { formatRelativeTime, truncateAddress } from '@/lib/format'
 import { chainMeta } from '@/config/chains'
+import { FeaturedAdmin } from '@/features/featured/FeaturedAdmin'
 import { isAuthConfigured } from '@/lib/supabase'
 import { useAuth } from '@/store/auth'
 import {
@@ -409,6 +410,14 @@ export function Admin() {
               )}
             </CardBody>
           </Card>
+        </section>
+
+        <section>
+          <SectionHeading
+            eyebrow={<Eyebrow>Dashboard</Eyebrow>}
+            title="What the dashboard features"
+          />
+          <FeaturedAdmin />
         </section>
 
         <section>

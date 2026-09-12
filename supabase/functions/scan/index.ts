@@ -348,6 +348,11 @@ Deno.serve(async (req) => {
   const { chainId, address } = parsed.value
   const db = serviceClient()
 
+  // Counted before the cache check, because a cache hit is still someone asking
+  // about this token. Counting misses only would under-count precisely the
+  // tokens popular enough to stay warm — the ones the dashboard should feature.
+  await db.rpc('record_token_scan', { p_chain_id: chainId, p_address: address })
+
   // Serve a warm cache rather than re-billing every upstream for each visitor.
   if (url.searchParams.get('refresh') !== '1') {
     const { data: cached } = await db
