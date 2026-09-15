@@ -87,7 +87,7 @@ export function Compare() {
       <PageHeader
         eyebrow={<Eyebrow>Investigate</Eyebrow>}
         title="Compare"
-        subtitle="Two tokens, side by side, on the four things that decide between them."
+        subtitle="Up to three tokens, side by side, on the things that decide between them."
       />
 
       <div className="space-y-6 px-4 pb-12 pt-6 md:px-8">
