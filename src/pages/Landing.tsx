@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { Logo } from '@/components/brand/Logo'
 import { ScanForm } from '@/components/scan/ScanForm'
+import { TrustedList } from '@/features/featured/TrustedList'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SignInButton } from '@/components/auth/SignInButton'
 
@@ -122,6 +123,8 @@ export function Landing() {
         <p className="mx-auto mt-4 max-w-md text-xs leading-relaxed text-muted">
           Works on Ethereum, Base, BNB Chain and six more networks. Takes about three seconds.
         </p>
+
+        <TrustedList limit={5} />
       </section>
 
       {/* ── Capabilities ────────────────────────────────────────────────── */}
