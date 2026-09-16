@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Logo } from '@/components/brand/Logo'
+import { MobileNavDrawer } from '@/components/layout/MobileNavDrawer'
+import { ChainMark } from '@/components/ui/ChainMark'
+import { CHAIN_LIST } from '@/config/chains'
 import { ScanForm } from '@/components/scan/ScanForm'
-import { TrustedList } from '@/features/featured/TrustedList'
+import { TrustedList } from '@/features/trusted/TrustedList'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { SignInButton } from '@/components/auth/SignInButton'
 import { ScanScene } from './landing/ScanScene'
@@ -68,17 +71,8 @@ const STEPS = [
   },
 ]
 
-const NETWORKS = [
-  'Ethereum',
-  'Base',
-  'BNB Chain',
-  'Arbitrum',
-  'Optimism',
-  'Polygon',
-  'Avalanche',
-  'Scroll',
-  'zkSync',
-]
+/** Mainnets only: a testnet logo on the front page would advertise nothing useful. */
+const NETWORKS = CHAIN_LIST.filter((meta) => !meta.testnet)
 
 export function Landing() {
   const [scrolled, setScrolled] = useState(false)
@@ -102,6 +96,14 @@ export function Landing() {
         )}
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:px-8">
+          <MobileNavDrawer
+            className="lg:hidden"
+            extraLinks={[
+              { href: '#trusted', label: 'Trusted tokens' },
+              { href: '#what', label: 'What it does' },
+              { href: '#how', label: 'How it works' },
+            ]}
+          />
           <Logo to="/" />
 
           <nav className="ml-8 hidden items-center gap-6 lg:flex" aria-label="Landing">
@@ -120,13 +122,13 @@ export function Landing() {
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
-            <ThemeToggle />
+            <ThemeToggle className="hidden sm:grid" />
             <Link to="/dashboard" className="hidden sm:block">
               <span className="text-sm text-secondary transition-colors duration-180 hover:text-primary">
                 Open app
               </span>
             </Link>
-            <SignInButton />
+            <SignInButton className="whitespace-nowrap" />
           </div>
         </div>
       </header>
@@ -179,16 +181,36 @@ export function Landing() {
         <div className="relative mx-auto mt-16 w-full max-w-5xl px-4">
           <Reveal delay={360}>
             <div className="border-t border-hairline pt-5">
-              <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+              {/* Logos rather than nine words in capitals: recognisable at a
+                  glance, and they fit one row on a phone. Each keeps its name
+                  for screen readers and as a tooltip. */}
+              <p className="mb-4 text-center text-2xs uppercase tracking-label text-muted">
+                Works on
+              </p>
+              <ul className="flex flex-wrap items-center justify-center gap-2 sm:gap-5">
                 {NETWORKS.map((network) => (
-                  <li key={network} className="text-2xs uppercase tracking-label text-muted">
-                    {network}
+                  <li key={network.chain.id} title={network.label}>
+                    <ChainMark
+                      chainId={network.chain.id}
+                      size="lg"
+                      className="h-7 w-7 opacity-80 grayscale sm:h-8 sm:w-8 transition-[filter,opacity] duration-300 hover:opacity-100 hover:grayscale-0"
+                    />
+                    <span className="sr-only">{network.label}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </Reveal>
         </div>
+      </section>
+
+      {/* ── Trusted tokens ──────────────────────────────────────────────── */}
+      {/* Straight after the hero: the first thing a visitor who is not ready to
+          paste an address can do is look at what has already passed. */}
+      <section id="trusted" className="relative mx-auto max-w-5xl scroll-mt-24 px-4 pb-8 md:px-8">
+        <Reveal>
+          <TrustedList limit={5} />
+        </Reveal>
       </section>
 
       {/* ── Statement ───────────────────────────────────────────────────── */}
@@ -225,13 +247,6 @@ export function Landing() {
             </Reveal>
           ))}
         </dl>
-      </section>
-
-      {/* ── Proof ───────────────────────────────────────────────────────── */}
-      <section className="relative mx-auto max-w-5xl px-4 pb-24 md:px-8">
-        <Reveal>
-          <TrustedList limit={5} />
-        </Reveal>
       </section>
 
       {/* ── How it works ────────────────────────────────────────────────── */}

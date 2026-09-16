@@ -1,4 +1,5 @@
 import {
+  BadgeCheck,
   Bell,
   ShieldCheck,
   Sparkles,
@@ -46,6 +47,14 @@ export const NAV_GROUPS: NavGroup[] = [
         short: 'Compare',
         icon: GitCompareArrows,
         tag: 'Beta',
+      },
+      {
+        to: '/trusted',
+        label: 'Trusted tokens',
+        short: 'Trusted',
+        icon: BadgeCheck,
+        // The four-up tab bar is already full; the drawer and rail carry it.
+        desktopOnly: true,
       },
     ],
   },

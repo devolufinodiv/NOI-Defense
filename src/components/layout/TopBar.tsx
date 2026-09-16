@@ -9,6 +9,7 @@ import { PointsBadge } from '@/features/points/PointsBadge'
 import { isValidAddress, normalizeAddress } from '@/lib/address'
 import { useChainStore } from '@/store/chain'
 import { NAV_ITEMS } from './nav'
+import { MobileNavDrawer } from './MobileNavDrawer'
 
 /** Resolve the current route to a readable trail. */
 function useBreadcrumb(): { section: string; page: string } {
@@ -108,6 +109,7 @@ export function TopBar() {
       )}
     >
       {/* Wordmark on mobile only — the sidebar carries it on desktop. */}
+      <MobileNavDrawer className="md:hidden" />
       <Logo to="/dashboard" showWordmark={false} className="shrink-0 md:hidden" />
 
       <nav aria-label="Breadcrumb" className="hidden shrink-0 items-center gap-2 lg:flex">

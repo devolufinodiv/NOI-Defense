@@ -40,3 +40,22 @@ export function tokenLogoUrl(
     return null
   }
 }
+
+/**
+ * The network's own logo.
+ *
+ * Every chain the app supports was checked to have one before this was added;
+ * testnets have none on purpose and fall back to the mark, which keeps a test
+ * network from looking identical to its mainnet.
+ */
+export function chainLogoUrl(chainId: number): string | null {
+  const chain = LOGO_CHAIN[chainId] ?? EXTRA_LOGO_CHAIN[chainId]
+  if (!chain) return null
+  return `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${chain}/info/logo.png`
+}
+
+/** Chains with a network logo but no per-token asset folder in use here. */
+const EXTRA_LOGO_CHAIN: Record<number, string> = {
+  534352: 'scroll',
+  324: 'zksync',
+}

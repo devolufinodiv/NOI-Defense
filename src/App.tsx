@@ -8,6 +8,7 @@ import { ScanEntry } from '@/pages/ScanEntry'
 import { TokenDetail } from '@/pages/TokenDetail'
 import { WalletDetail } from '@/pages/WalletDetail'
 import { Compare } from '@/pages/Compare'
+import { Trusted } from '@/pages/Trusted'
 import { Alerts } from '@/pages/Alerts'
 import { StyleGuide } from '@/pages/StyleGuide'
 import { NotFound } from '@/pages/NotFound'
@@ -30,6 +31,7 @@ export function App() {
               <Route path="/wallet" element={<ScanEntry kind="wallet" />} />
               <Route path="/wallet/:address" element={<WalletDetail />} />
               <Route path="/compare" element={<Compare />} />
+              <Route path="/trusted" element={<Trusted />} />
               <Route path="/alerts" element={<Alerts />} />
               <Route path="/rewards" element={<Rewards />} />
               <Route path="/admin" element={<Admin />} />

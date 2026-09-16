@@ -230,12 +230,18 @@ export function useUnpinToken() {
   return useMutation<void, Error, { chainId: number; address: string }>({
     mutationFn: async ({ chainId, address }) => {
       if (!supabase) throw new PinError('Supabase is not configured.')
-      const { error } = await supabase
+      // A delete blocked by row level security matches no rows and still
+      // succeeds, so read back what was removed rather than trusting silence.
+      const { data, error } = await supabase
         .from('featured_tokens')
         .delete()
         .eq('chain_id', chainId)
         .eq('address', address.toLowerCase())
+        .select('chain_id')
       if (error) throw new PinError(error.message)
+      if (!data || data.length === 0) {
+        throw new PinError('Nothing was removed. Only an admin can change the featured list.')
+      }
     },
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['featured'] })
