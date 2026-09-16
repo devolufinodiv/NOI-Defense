@@ -37,7 +37,12 @@ const columns: Array<Column<MarketToken>> = [
     sortValue: (t) => t.symbol || t.name,
     render: (token) => (
       <div className="flex min-w-0 items-center gap-3">
-        <TokenMark symbol={token.symbol || token.name || '?'} size="sm" />
+        <TokenMark
+          symbol={token.symbol || token.name || '?'}
+          size="sm"
+          chainId={token.chainId}
+          address={token.address}
+        />
         <div className="min-w-0">
           <div className="truncate text-sm font-medium text-primary">
             {token.name || token.symbol || truncateAddress(token.address)}

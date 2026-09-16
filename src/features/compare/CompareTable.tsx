@@ -241,7 +241,12 @@ export function CompareTable({ columns }: { columns: Column[] }) {
                     className="sticky top-0 z-20 border-b border-hairline-strong bg-card px-4 py-3 text-left align-bottom"
                   >
                     <span className="flex items-center gap-2">
-                      <TokenMark symbol={symbol || '?'} size="md" />
+                      <TokenMark
+                        symbol={symbol || '?'}
+                        size="md"
+                        chainId={column.chainId}
+                        address={column.address}
+                      />
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold text-primary">
                           {symbol || truncateAddress(column.address)}

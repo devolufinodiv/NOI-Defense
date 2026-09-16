@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { brandColor } from '@/design/tokens'
 import { cn } from '@/lib/cn'
 import { glyphFor } from '@/components/icons/tokenGlyphs'
+import { tokenLogoUrl } from '@/lib/tokenLogo'
 
 const SIZES = {
   xs: { box: 'h-6 w-6', text: 'text-[9px]' },
@@ -18,6 +19,12 @@ export interface TokenMarkProps {
    * component silently falls back rather than showing a broken image.
    */
   logoUrl?: string | null
+  /**
+   * Where the token lives. Given both, a real logo is derived from the address
+   * without needing one to be stored or passed in.
+   */
+  chainId?: number
+  address?: string | null
   className?: string
 }
 
@@ -25,7 +32,7 @@ export interface TokenMarkProps {
  * Token identity mark.
  *
  * Three tiers, in order:
- *  1. `logoUrl` — a real logo from the indexer, when it has one.
+ *  1. A real logo — passed in, or derived from `chainId` + `address`.
  *  2. A bundled glyph — inline SVG for the tokens we know, in the project's
  *     brand colour. No network round trip and never a broken image.
  *  3. A lettered chip tinted with the brand colour, so an unknown token still
@@ -34,18 +41,28 @@ export interface TokenMarkProps {
  * Brand colour is identity only and never encodes gain or loss — that is what
  * the positive/negative tokens are for.
  */
-export function TokenMark({ symbol, size = 'md', logoUrl, className }: TokenMarkProps) {
+export function TokenMark({
+  symbol,
+  size = 'md',
+  logoUrl,
+  chainId,
+  address,
+  className,
+}: TokenMarkProps) {
   const [remoteFailed, setRemoteFailed] = useState(false)
   const dims = SIZES[size]
   const glyph = glyphFor(symbol)
   const brand = brandColor(symbol)
 
+  // An explicit logo wins; otherwise derive one from the address.
+  const remote = logoUrl ?? tokenLogoUrl(chainId, address)
+
   const shell = cn('shrink-0 overflow-hidden rounded-full', dims.box, className)
 
-  if (logoUrl && !remoteFailed) {
+  if (remote && !remoteFailed) {
     return (
       <img
-        src={logoUrl}
+        src={remote}
         alt=""
         aria-hidden
         loading="lazy"

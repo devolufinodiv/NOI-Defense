@@ -77,7 +77,7 @@
       script-src 'self' 'sha256-hlWX7zmMpsBhi5nT/Bgpim4nMGEIUNUvL8Awqn2rHg0=';
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
-      img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.googleusercontent.com;
+      img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.googleusercontent.com https://raw.githubusercontent.com https://cdn.dexscreener.com;
       connect-src 'self' https: wss:;
       frame-src 'self' https://accounts.google.com;
       form-action 'self' https://accounts.google.com;

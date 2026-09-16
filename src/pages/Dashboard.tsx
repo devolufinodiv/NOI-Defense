@@ -73,13 +73,13 @@ export function Dashboard() {
             }
           />
           {featured.isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="h-56 animate-pulse rounded-xl border border-hairline bg-raised/40" />
+                <div key={i} className="h-[74px] animate-pulse rounded-xl border border-hairline bg-raised/40" />
               ))}
             </div>
           ) : featured.data && featured.data.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {featured.data.map((token) => (
                 <FeaturedScanCard key={`${token.chainId}:${token.address}`} token={token} />
               ))}

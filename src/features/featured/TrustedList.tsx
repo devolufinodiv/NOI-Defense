@@ -128,7 +128,7 @@ function TrustedRowItem({ token, rank }: { token: TrustedToken; rank: number }) 
       >
         <span className="tabular w-4 shrink-0 text-xs text-muted">{rank}</span>
 
-        <TokenMark symbol={token.symbol} size="md" />
+        <TokenMark symbol={token.symbol} size="md" chainId={token.chainId} address={token.address} />
 
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">

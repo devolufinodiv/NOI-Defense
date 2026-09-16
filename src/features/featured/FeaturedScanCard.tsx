@@ -1,150 +1,107 @@
 import { Link } from 'react-router-dom'
-import { Pin, ShieldAlert, ShieldCheck, TriangleAlert } from 'lucide-react'
-import { Card } from '@/components/ui/Card'
-import { DeltaPill } from '@/components/ui/Badge'
+import { Pin } from 'lucide-react'
 import { TokenMark } from '@/components/ui/TokenMark'
-import { brandColor } from '@/design/tokens'
 import { chainMeta } from '@/config/chains'
-import { formatRelativeTime, formatUsd, truncateAddress } from '@/lib/format'
+import { formatPercent, formatUsd, truncateAddress } from '@/lib/format'
+import { cn } from '@/lib/cn'
 import type { FeaturedToken } from './queries'
 
 /**
- * One featured token.
+ * One featured token, as a tile.
  *
- * Every figure on this card was recorded by an actual scan. Where a figure was
- * never recorded the card says so rather than printing a zero — a token with no
- * price is not a token worth $0.00, and the difference matters to someone
- * deciding whether to buy it.
+ * This was a tall card carrying a headline price, a two-column stat grid, a
+ * sentence of safety copy and a timestamp — five blocks of furniture around
+ * four facts. At that size three tokens filled the screen and none of them were
+ * quicker to read for it.
  *
- * There is deliberately no price chart. We keep no price history, so any curve
- * drawn here would be invented.
+ * What survives is what someone actually scans a row of tiles for: which token,
+ * what it costs, which way it moved, and whether anything is wrong with it. The
+ * safety finding is a dot with the full sentence on hover and for screen
+ * readers, so the detail is still there without a paragraph on every tile.
+ *
+ * Figures never recorded stay absent rather than becoming zero.
  */
 export function FeaturedScanCard({ token }: { token: FeaturedToken }) {
   const chain = chainMeta(token.chainId)
   const label = token.symbol || truncateAddress(token.address)
-  const name = token.name || 'Unnamed contract'
-
-  const scanned = token.lastScannedAt
-    ? formatRelativeTime(Math.floor(new Date(token.lastScannedAt).getTime() / 1000))
-    : null
+  const safety = safetyOf(token)
 
   return (
-    <Card interactive railColor={brandColor(token.symbol || token.address)} className="flex flex-col">
-      <Link to={`/token/${token.address}`} className="flex flex-1 flex-col p-5">
-        <div className="flex items-start gap-3">
-          <TokenMark symbol={token.symbol || '?'} size="lg" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="truncate text-lg font-semibold tracking-heading text-primary">
-                {label}
-              </span>
-              {token.pinned ? (
-                <span className="chip shrink-0 gap-1 text-[11px]" title="Chosen by an admin">
-                  <Pin className="h-3 w-3" strokeWidth={2} aria-hidden />
-                  Pinned
-                </span>
-              ) : null}
-            </div>
-            <div className="truncate text-xs text-muted">
-              {name}
-              {chain ? ` · ${chain.label}` : null}
-            </div>
-          </div>
-        </div>
+    <Link
+      to={`/token/${token.address}?chain=${token.chainId}`}
+      className="glass-panel group flex items-center gap-3 rounded-xl border border-hairline p-3 transition-[transform,border-color] duration-180 hover:-translate-y-0.5 hover:border-hairline-strong"
+    >
+      <TokenMark symbol={token.symbol || '?'} size="md" chainId={token.chainId} address={token.address} />
 
-        <div className="mt-4">
-          {token.priceUsd === null ? (
-            <div className="text-sm text-muted">No price recorded for this token.</div>
-          ) : (
-            <div className="flex flex-wrap items-end gap-3">
-              <span className="tabular text-2xl font-semibold text-primary">
-                {formatUsd(token.priceUsd)}
-              </span>
-              {token.change24h === null ? null : (
-                <DeltaPill value={token.change24h} className="mb-1" />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span className="truncate text-sm font-semibold text-primary">{label}</span>
+          {token.pinned ? (
+            <Pin
+              className="h-3 w-3 shrink-0 text-muted"
+              strokeWidth={2}
+              aria-label="Pinned by an admin"
+            />
+          ) : null}
+          <span
+            className={cn('ml-auto h-1.5 w-1.5 shrink-0 rounded-full', safety.dot)}
+            title={safety.text}
+            aria-label={safety.text}
+            role="img"
+          />
+        </span>
+
+        <span className="mt-0.5 flex items-baseline justify-between gap-2">
+          <span className="tabular truncate text-sm text-secondary">
+            {token.priceUsd === null ? (
+              <span className="text-muted">No price</span>
+            ) : (
+              formatUsd(token.priceUsd)
+            )}
+          </span>
+          {token.change24h === null ? null : (
+            <span
+              className={cn(
+                'tabular shrink-0 text-xs',
+                token.change24h >= 0 ? 'text-positive' : 'text-negative',
               )}
-            </div>
+            >
+              {formatPercent(token.change24h, { signed: true })}
+            </span>
           )}
-        </div>
+        </span>
 
-        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-          <div>
-            <dt className="text-muted">Liquidity</dt>
-            <dd className="tabular mt-0.5 text-secondary">
-              {token.liquidityUsd === null
-                ? 'Not recorded'
-                : formatUsd(token.liquidityUsd, { compact: true })}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted">Scanned here</dt>
-            <dd className="tabular mt-0.5 text-secondary">
-              {token.scanCount === 1 ? 'once' : `${token.scanCount.toLocaleString('en-US')} times`}
-            </dd>
-          </div>
-        </dl>
-
-        <div className="mt-4 flex items-start gap-2 border-t border-hairline pt-3 text-xs">
-          <SafetyNote token={token} />
-        </div>
-
-        {scanned ? (
-          <div className="mt-2 text-[11px] text-muted">Last scanned {scanned}</div>
-        ) : null}
-      </Link>
-    </Card>
+        <span className="mt-0.5 block truncate text-[11px] text-muted">
+          {chain ? `${chain.label} · ` : ''}
+          {token.liquidityUsd === null
+            ? 'depth not recorded'
+            : `${formatUsd(token.liquidityUsd, { compact: true })} depth`}
+          {' · '}
+          {token.scanCount === 1 ? 'scanned once' : `scanned ${token.scanCount.toLocaleString('en-US')}×`}
+        </span>
+      </span>
+    </Link>
   )
 }
 
 /**
- * The single most important thing the scan found, in plain words.
+ * The strongest thing the scan found, as a colour plus the sentence behind it.
  *
- * Silence is reported as silence: a check that never ran reads as "not checked",
- * never as a clean bill of health.
+ * A check that never ran gets its own muted state — it is not a pass, and it
+ * must not look like one.
  */
-function SafetyNote({ token }: { token: FeaturedToken }) {
+function safetyOf(token: FeaturedToken): { dot: string; text: string } {
   if (token.isHoneypot === true) {
-    return (
-      <>
-        <ShieldAlert className="h-4 w-4 shrink-0 text-negative" strokeWidth={2} aria-hidden />
-        <span className="text-negative">A test sale failed — you may not be able to sell this.</span>
-      </>
-    )
+    return { dot: 'bg-negative', text: 'A test sale failed — you may not be able to sell this.' }
   }
-
   if (token.sellTax !== null && token.sellTax >= 10) {
-    return (
-      <>
-        <TriangleAlert className="h-4 w-4 shrink-0 text-warning" strokeWidth={2} aria-hidden />
-        <span className="text-secondary">
-          Selling costs a {token.sellTax.toFixed(0)}% fee.
-        </span>
-      </>
-    )
+    return { dot: 'bg-warning', text: `Selling costs a ${token.sellTax.toFixed(0)}% fee.` }
   }
-
   if (token.isHoneypot === false) {
-    return (
-      <>
-        <ShieldCheck className="h-4 w-4 shrink-0 text-positive" strokeWidth={2} aria-hidden />
-        <span className="text-secondary">A test buy and sale both went through.</span>
-      </>
-    )
+    return { dot: 'bg-positive', text: 'A test buy and sale both went through.' }
   }
-
   if (token.sourceVerified === false) {
-    return (
-      <>
-        <TriangleAlert className="h-4 w-4 shrink-0 text-warning" strokeWidth={2} aria-hidden />
-        <span className="text-secondary">The code behind this token has not been published.</span>
-      </>
-    )
+    return { dot: 'bg-warning', text: 'The code behind this token has not been published.' }
   }
-
-  return (
-    <>
-      <TriangleAlert className="h-4 w-4 shrink-0 text-muted" strokeWidth={2} aria-hidden />
-      <span className="text-muted">Safety checks did not run on this network.</span>
-    </>
-  )
+  return { dot: 'bg-muted', text: 'Safety checks did not run on this network.' }
 }
