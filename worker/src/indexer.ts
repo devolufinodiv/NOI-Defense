@@ -1,5 +1,4 @@
 import { erc20Abi, getAddress, parseAbiItem, type Address, type PublicClient } from 'viem'
-import { clientFor } from './rpc.js'
 import {
   computeHealth,
   deriveEarlyBuyers,
@@ -153,13 +152,22 @@ export interface IndexResult {
   latestBlock: bigint
 }
 
+/**
+ * Walks a token's history and derives everything downstream needs.
+ *
+ * The client is injected rather than constructed here. Building it internally
+ * meant importing the RPC module, which imports config, which demands a full
+ * Supabase environment before a single log can be read — so testing the log
+ * walk against a live chain required credentials it never touches. `derive.ts`
+ * and `rules.ts` were separated from config for exactly this reason; this is
+ * the last import that undid it.
+ */
 export async function indexToken(
-  chainId: number,
+  client: PublicClient,
   rawAddress: string,
   maxLookback: bigint,
   onProgress?: (message: string) => void,
 ): Promise<IndexResult> {
-  const client = clientFor(chainId)
   const address = getAddress(rawAddress)
 
   const latestBlock = await client.getBlockNumber()

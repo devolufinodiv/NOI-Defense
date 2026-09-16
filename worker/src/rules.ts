@@ -4,6 +4,12 @@
  * Pure and dependency-free so the rules can be tested on their own — the
  * monitor imports the database client, which needs a full environment just to
  * load, and that should not be a prerequisite for checking arithmetic.
+ *
+ * NOTE: these thresholds are mirrored by `public.sweep_alerts()` in
+ * supabase/migrations. That copy is the one that runs today, because it needs
+ * neither a service-role key nor a host, while this worker needs both. The
+ * duplication is deliberate and the two must be changed together — the tests
+ * beside this file are what pin the numbers.
  */
 
 export interface Observation {

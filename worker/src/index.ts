@@ -67,7 +67,7 @@ async function processJob(job: {
   }, 30_000)
 
   try {
-    const result = await indexToken(job.chain_id, job.address, config.maxLookback, (message) =>
+    const result = await indexToken(clientFor(job.chain_id), job.address, config.maxLookback, (message) =>
       log('job.progress', { job: job.id, detail: message }),
     )
 
