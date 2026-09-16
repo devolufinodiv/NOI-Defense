@@ -37,10 +37,36 @@ export interface ScanVerdict {
   reasons: Array<{ tone: ReasonTone; text: string }>
 }
 
+/** When the contract was deployed, and by whom. */
+export interface ScanAge {
+  status: 'ok' | 'not-a-contract' | 'not-configured' | 'chain-unsupported' | 'failed'
+  deployedAt: string | null
+  deploymentBlock: number | null
+  deployedBy: string | null
+}
+
+/**
+ * How much of the pool cannot be withdrawn.
+ *
+ * `lockedPercent` only covers lockers we recognise, so a low number means
+ * "we did not find a lock", never "there is no lock".
+ */
+export interface ScanLock {
+  status: 'ok' | 'no-pool' | 'not-applicable' | 'chain-unsupported' | 'failed'
+  pairAddress: string | null
+  venue: string | null
+  burnedPercent: number | null
+  lockedPercent: number | null
+  lockersChecked: number
+}
+
 export interface ScanResult {
   token: ScanToken
   market: ScanMarket | null
   safety: ScanSafety | null
+  /** Null on a cached reply: both are read live and are never replayed. */
+  age: ScanAge | null
+  lock: ScanLock | null
   verdict: ScanVerdict
   cached: boolean
 }

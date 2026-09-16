@@ -11,6 +11,7 @@ import { track } from '@/lib/analytics'
 import { chainMeta, defaultChainMeta } from '@/config/chains'
 import { useChainStore } from '@/store/chain'
 import { useScan } from '@/features/scan/queries'
+import { TokenHistory } from '@/features/history/TokenHistory'
 import { VerdictCard } from '@/features/scan/components/VerdictCard'
 import { ScanFacts } from '@/features/scan/components/ScanFacts'
 import { HolderMapLink } from '@/features/scan/components/HolderMapLink'
@@ -107,6 +108,8 @@ export function TokenDetail() {
               token={scan.data?.token}
               market={scan.data?.market}
               safety={scan.data?.safety}
+              age={scan.data?.age}
+              lock={scan.data?.lock}
               loading={scan.isLoading}
             />
 
@@ -122,6 +125,8 @@ export function TokenDetail() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
+              <TokenHistory chainId={chainId} address={address} />
+
               <HolderMapLink chainId={chainId} address={address} subject="token" />
 
               <div className="glass-panel rounded-lg border border-hairline p-4">

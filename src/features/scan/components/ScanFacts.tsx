@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { TermLabel } from '@/components/ui/Explain'
 import { chainMeta } from '@/config/chains'
 import { formatUsd } from '@/lib/format'
-import type { ScanMarket, ScanSafety, ScanToken } from '../types'
+import type { ScanAge, ScanLock, ScanMarket, ScanSafety, ScanToken } from '../types'
 
 function Fact({
   label,
@@ -34,11 +34,15 @@ export function ScanFacts({
   token,
   market,
   safety,
+  age,
+  lock,
   loading,
 }: {
   token?: ScanToken
   market?: ScanMarket | null
   safety?: ScanSafety | null
+  age?: ScanAge | null
+  lock?: ScanLock | null
   loading: boolean
 }) {
   if (loading || !token) {
@@ -91,6 +95,16 @@ export function ScanFacts({
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-5 border-t border-hairline pt-5 sm:grid-cols-4">
           <Fact
+            label="Age"
+            value={ageValue(age)}
+            hint={ageHint(age)}
+          />
+          <Fact
+            label="Pool locked"
+            value={lockValue(lock)}
+            hint={lockHint(lock)}
+          />
+          <Fact
             label="Price"
             value={market?.priceUsd != null ? formatUsd(market.priceUsd) : unknown}
             hint={market?.priceUsd == null ? 'No pool priced in dollars' : undefined}
@@ -120,4 +134,56 @@ export function ScanFacts({
       </CardBody>
     </Card>
   )
+}
+
+
+/**
+ * Age and lock, as short facts.
+ *
+ * Both distinguish a check that did not run from a check that came back clean,
+ * because the two mean opposite things to somebody about to buy.
+ */
+function ageValue(age?: ScanAge | null): string {
+  if (!age || age.status !== 'ok' || !age.deployedAt) return '—'
+  const days = (Date.now() - new Date(age.deployedAt).getTime()) / 86_400_000
+  if (days < 1) return 'Under a day'
+  if (days < 14) return `${Math.round(days)} days`
+  if (days < 60) return `${Math.round(days / 7)} weeks`
+  if (days < 730) return `${Math.round(days / 30)} months`
+  return `${(days / 365).toFixed(1)} years`
+}
+
+function ageHint(age?: ScanAge | null): string | undefined {
+  if (!age) return 'Read live, not cached'
+  if (age.status === 'ok' && age.deployedAt) {
+    return new Date(age.deployedAt).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  }
+  if (age.status === 'not-configured') return 'Not set up yet'
+  if (age.status === 'chain-unsupported') return 'Not available on this network'
+  if (age.status === 'not-a-contract') return 'This address holds no code'
+  return 'Could not check'
+}
+
+function lockValue(lock?: ScanLock | null): string {
+  if (!lock || lock.status !== 'ok') return '—'
+  if (lock.burnedPercent === null || lock.lockedPercent === null) return '—'
+  const held = lock.burnedPercent + lock.lockedPercent
+  return `${held.toFixed(held >= 1 ? 0 : 2)}%`
+}
+
+function lockHint(lock?: ScanLock | null): string | undefined {
+  if (!lock) return 'Read live, not cached'
+  if (lock.status === 'not-applicable') return 'Pool holds positions individually'
+  if (lock.status === 'no-pool') return 'No pool found'
+  if (lock.status === 'chain-unsupported') return 'Not available on this network'
+  if (lock.status !== 'ok') return 'Could not check'
+
+  const held = (lock.burnedPercent ?? 0) + (lock.lockedPercent ?? 0)
+  return held < 50
+    ? `Not found in ${lock.lockersChecked} known lockers`
+    : 'Burned or locked'
 }

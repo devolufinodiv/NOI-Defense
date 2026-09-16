@@ -98,6 +98,28 @@ function compactSupply(value: string): string {
   return digits
 }
 
+const AGE_GAP: Record<string, string> = {
+  'not-configured': 'Not set up yet',
+  'chain-unsupported': 'Not available here',
+  'not-a-contract': 'Not a contract',
+  failed: 'Could not read',
+}
+
+const LOCK_GAP: Record<string, string> = {
+  'no-pool': 'No pool found',
+  'chain-unsupported': 'Not available here',
+  failed: 'Could not read',
+}
+
+/** Plain words for an age, rather than a raw number of days. */
+function describeAge(days: number): string {
+  if (days < 1) return 'Less than a day old'
+  if (days < 14) return `${Math.round(days)} days old`
+  if (days < 60) return `${Math.round(days / 7)} weeks old`
+  if (days < 730) return `${Math.round(days / 30)} months old`
+  return `${(days / 365).toFixed(1)} years old`
+}
+
 const FUNCTION_GAP: Record<string, string> = {
   'not-configured': 'Not set up yet',
   unverified: 'Code not published',
@@ -566,6 +588,31 @@ function buildSections(columns: Column[]): Section[] {
         },
       },
       {
+        id: 'age',
+        label: 'How old it is',
+        hint: 'Most tokens that vanish do it in the first days',
+        better: 'higher',
+        value: (p) => (p.age.status === 'ok' && p.age.deployedAt
+          ? new Date(p.age.deployedAt).getTime()
+          : null),
+        render: (p) => {
+          const a = p.age
+          if (a.status !== 'ok' || !a.deployedAt) return <Unknown label={AGE_GAP[a.status] ?? 'Not checked'} />
+          const days = (Date.now() - new Date(a.deployedAt).getTime()) / 86_400_000
+          const tone = days < 1 ? 'bad' : days < 7 ? 'warn' : days > 180 ? 'good' : 'neutral'
+          return (
+            <span className="flex flex-col gap-0.5">
+              <ToneValue tone={tone}>{describeAge(days)}</ToneValue>
+              <span className="text-[11px] text-muted">
+                {new Date(a.deployedAt).toLocaleDateString('en-GB', {
+                  day: 'numeric', month: 'short', year: 'numeric',
+                })}
+              </span>
+            </span>
+          )
+        },
+      },
+      {
         id: 'depth-glance',
         label: 'Depth to trade against',
         better: 'higher',
@@ -783,6 +830,45 @@ function buildSections(columns: Column[]): Section[] {
           ) : (
             <span className="tabular text-secondary">{p.market.pairCount}</span>
           ),
+      },
+      {
+        id: 'lock',
+        label: 'Can the pool be pulled?',
+        hint: 'Burned or locked liquidity cannot be withdrawn',
+        better: 'higher',
+        value: (p) =>
+          p.lock.status === 'ok' && p.lock.burnedPercent !== null && p.lock.lockedPercent !== null
+            ? p.lock.burnedPercent + p.lock.lockedPercent
+            : null,
+        render: (p) => {
+          const l = p.lock
+          if (l.status === 'not-applicable') {
+            return (
+              <span className="flex flex-col gap-0.5">
+                <Unknown label="Different pool type" />
+                <span className="text-[11px] text-muted">
+                  Positions here are held individually, not as a pooled balance
+                </span>
+              </span>
+            )
+          }
+          if (l.status !== 'ok' || l.burnedPercent === null || l.lockedPercent === null) {
+            return <Unknown label={LOCK_GAP[l.status] ?? 'Could not read'} />
+          }
+          const held = l.burnedPercent + l.lockedPercent
+          return (
+            <span className="flex flex-col gap-0.5">
+              <ToneValue tone={held >= 95 ? 'good' : held >= 50 ? 'neutral' : 'warn'}>
+                <span className="tabular">{held.toFixed(held >= 1 ? 0 : 2)}%</span> burned or locked
+              </ToneValue>
+              <span className="text-[11px] leading-snug text-muted">
+                {held < 50
+                  ? `The rest could be withdrawn, or held in a locker we do not recognise. ${l.lockersChecked} checked.`
+                  : `${l.lockersChecked} lockers checked`}
+              </span>
+            </span>
+          )
+        },
       },
       {
         id: 'concentration',

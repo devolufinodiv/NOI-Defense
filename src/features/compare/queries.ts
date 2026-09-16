@@ -75,6 +75,26 @@ export interface ProfileSecurity {
   flags: string[]
 }
 
+export interface ProfileAge {
+  status: 'ok' | 'not-a-contract' | 'not-configured' | 'chain-unsupported' | 'failed'
+  deployedAt: string | null
+  deploymentBlock: number | null
+  deployedBy: string | null
+}
+
+/**
+ * `lockedPercent` counts only lockers we recognise, so a low figure means
+ * "we did not find a lock" and never "there is no lock".
+ */
+export interface ProfileLock {
+  status: 'ok' | 'no-pool' | 'not-applicable' | 'chain-unsupported' | 'failed'
+  pairAddress: string | null
+  venue: string | null
+  burnedPercent: number | null
+  lockedPercent: number | null
+  lockersChecked: number
+}
+
 export interface TokenProfile {
   token: {
     chainId: number
@@ -85,6 +105,8 @@ export interface TokenProfile {
   }
   functions: ProfileFunctions
   market: ProfileMarket
+  age: ProfileAge
+  lock: ProfileLock
   supply: ProfileSupply
   security: ProfileSecurity
 }
