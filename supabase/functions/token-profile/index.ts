@@ -1,4 +1,5 @@
 import { json, parseTarget, preflight } from '../_shared/http.ts'
+import { contractAge, ethCall, liquidityLock } from '../_shared/onchain.ts'
 
 /**
  * GET /token-profile?chainId=1&address=0x…
@@ -17,18 +18,9 @@ import { json, parseTarget, preflight } from '../_shared/http.ts'
  * appear in the response.
  */
 
-const RPC: Record<number, string[]> = {
-  1: ['https://ethereum-rpc.publicnode.com', 'https://cloudflare-eth.com', 'https://eth.drpc.org'],
-  8453: ['https://mainnet.base.org', 'https://base-rpc.publicnode.com'],
-  42161: ['https://arb1.arbitrum.io/rpc', 'https://arbitrum-one-rpc.publicnode.com'],
-  10: ['https://mainnet.optimism.io', 'https://optimism-rpc.publicnode.com'],
-  137: ['https://polygon-rpc.com', 'https://polygon-bor-rpc.publicnode.com'],
-  56: ['https://bsc-dataseed.binance.org', 'https://bsc-rpc.publicnode.com'],
-  43114: ['https://api.avax.network/ext/bc/C/rpc', 'https://avalanche-c-chain-rpc.publicnode.com'],
-  534352: ['https://rpc.scroll.io'],
-  324: ['https://mainnet.era.zksync.io'],
-  84532: ['https://sepolia.base.org'],
-  11155111: ['https://ethereum-sepolia-rpc.publicnode.com'],
+const num = (v: unknown): number | null => {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
 }
 
 const MARKET_SLUG: Record<number, string> = {
@@ -46,34 +38,6 @@ async function timed<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   } catch {
     return null
   }
-}
-
-async function rpc(chainId: number, method: string, params: unknown[]): Promise<string | null> {
-  for (const url of RPC[chainId] ?? []) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-      })
-      if (!res.ok) continue
-      const body = await res.json()
-      if (typeof body?.result === 'string') return body.result
-    } catch {
-      // Fall through to the next endpoint rather than failing the section.
-    }
-  }
-  return null
-}
-
-/** One `eth_call` against a zero-argument selector. */
-function ethCall(chainId: number, address: string, selector: string) {
-  return rpc(chainId, 'eth_call', [{ to: address, data: selector }, 'latest'])
-}
-
-const num = (v: unknown): number | null => {
-  const n = Number(v)
-  return Number.isFinite(n) ? n : null
 }
 
 /* ---------------------------------------------- contract functions --- */
@@ -298,6 +262,7 @@ interface MarketSection {
   pairCount: number
   topPools: Pool[]
   windows: TimeWindow[]
+  deepestPool: { pairAddress?: string; dexId?: string; labels?: string[] } | null
 }
 
 const NO_MARKET = (status: MarketSection['status']): MarketSection => ({
@@ -311,6 +276,7 @@ const NO_MARKET = (status: MarketSection['status']): MarketSection => ({
   pairCount: 0,
   topPools: [],
   windows: [],
+  deepestPool: null,
 })
 
 async function fetchMarket(chainId: number, address: string): Promise<MarketSection> {
@@ -410,6 +376,14 @@ async function fetchMarket(chainId: number, address: string): Promise<MarketSect
     pairCount: holding.length,
     topPools,
     windows,
+    deepestPool: (() => {
+      const best = deepestOf(holding)
+      return {
+        pairAddress: typeof best.pairAddress === 'string' ? best.pairAddress : undefined,
+        dexId: typeof best.dexId === 'string' ? best.dexId : undefined,
+        labels: Array.isArray(best.labels) ? best.labels.map(String) : undefined,
+      }
+    })(),
   }
 }
 
@@ -523,12 +497,19 @@ Deno.serve(async (req) => {
 
   const { chainId, address } = parsed.value
 
-  const [functions, market, supply, security] = await Promise.all([
+  const registryKey = Deno.env.get('CONTRACT_REGISTRY_KEY')?.trim()
+
+  const [functions, market, supply, security, age] = await Promise.all([
     timed(fetchFunctions(chainId, address), 9_000),
     timed(fetchMarket(chainId, address), 12_000),
     timed(fetchSupply(chainId, address), 8_000),
     timed(fetchSecurity(chainId, address), 8_000),
+    timed(contractAge(chainId, address, registryKey), 9_000),
   ])
+
+  // The lock check needs the pool the market read already found, so it runs
+  // after rather than fetching the pair list a second time.
+  const lock = await timed(liquidityLock(chainId, market?.deepestPool ?? null), 8_000)
 
   // A timeout is not a finding. Each section falls back to its own "failed"
   // shape so the client renders "we could not read this" rather than a blank
@@ -553,6 +534,20 @@ Deno.serve(async (req) => {
         implementation: null,
       },
       market: market ?? NO_MARKET('failed'),
+      age: age ?? {
+        status: 'failed',
+        deployedAt: null,
+        deploymentBlock: null,
+        deployedBy: null,
+      },
+      lock: lock ?? {
+        status: 'failed',
+        pairAddress: null,
+        venue: null,
+        burnedPercent: null,
+        lockedPercent: null,
+        lockersChecked: 0,
+      },
       supply: supply ?? { status: 'failed', totalSupply: null, decimals: null },
       security: security ?? {
         status: 'failed',

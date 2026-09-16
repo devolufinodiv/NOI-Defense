@@ -1,5 +1,11 @@
 import { json, parseTarget, preflight } from '../_shared/http.ts'
 import { serviceClient, userClient } from '../_shared/db.ts'
+import {
+  contractAge,
+  liquidityLock,
+  type ContractAge,
+  type LiquidityLock,
+} from '../_shared/onchain.ts'
 
 /**
  * GET /scan?chainId=8453&address=0x…
@@ -47,6 +53,7 @@ interface MarketData {
   primaryVenue: string | null
   name: string | null
   symbol: string | null
+  deepestPool: { pairAddress?: string; dexId?: string; labels?: string[] } | null
 }
 
 /**
@@ -108,6 +115,11 @@ function summarise(pairs: Array<Record<string, unknown>>, ours: string): MarketD
     primaryVenue: typeof primary.dexId === 'string' ? primary.dexId : null,
     name: self?.name ?? null,
     symbol: self?.symbol ?? null,
+    deepestPool: {
+      pairAddress: typeof primary.pairAddress === 'string' ? primary.pairAddress : undefined,
+      dexId: typeof primary.dexId === 'string' ? primary.dexId : undefined,
+      labels: Array.isArray(primary.labels) ? primary.labels.map(String) : undefined,
+    },
   }
 }
 
@@ -248,6 +260,8 @@ function buildVerdict(
   safety: SafetyData | null,
   source: SourceData | null,
   marketChecked: boolean,
+  age: ContractAge | null,
+  lock: LiquidityLock | null,
 ): Verdict {
   const reasons: Verdict['reasons'] = []
   let worst: Tier = 'safe'
@@ -304,6 +318,40 @@ function buildVerdict(
     reasons.push({ tone: 'warn', text: 'The code behind this token has not been published, so nobody can check what it does.' })
   }
 
+  // Age. Most tokens that take money and vanish do it in the first days, so a
+  // brand new contract is worth saying out loud.
+  if (age?.status === 'ok' && age.deployedAt) {
+    const hours = (Date.now() - new Date(age.deployedAt).getTime()) / 3_600_000
+    if (hours < 24) {
+      escalate('risk')
+      reasons.push({ tone: 'bad', text: `This token was created ${hours < 1 ? 'less than an hour' : `${Math.round(hours)} hours`} ago. Almost nothing is known about it yet.` })
+    } else if (hours < 24 * 7) {
+      escalate('caution')
+      reasons.push({ tone: 'warn', text: `This token is ${Math.round(hours / 24)} days old, which is early enough that little has been tested.` })
+    } else if (hours > 24 * 180) {
+      reasons.push({ tone: 'good', text: `This token has been running for ${Math.round(hours / 24 / 30)} months.` })
+    }
+  }
+
+  /*
+   * Liquidity lock.
+   *
+   * Phrased as coverage, never as a verdict on the token: liquidity held in a
+   * locker we do not recognise would read as unaccounted for, and calling that
+   * "unlocked" would be a claim we cannot support.
+   */
+  if (lock?.status === 'ok' && lock.burnedPercent !== null && lock.lockedPercent !== null) {
+    const held = lock.burnedPercent + lock.lockedPercent
+    if (held >= 95) {
+      reasons.push({ tone: 'good', text: `The pool behind this token is ${held.toFixed(0)}% burned or locked, so it cannot simply be withdrawn.` })
+    } else if (held >= 50) {
+      reasons.push({ tone: 'neutral', text: `About ${held.toFixed(0)}% of the pool is burned or locked; the rest could be withdrawn.` })
+    } else {
+      escalate('caution')
+      reasons.push({ tone: 'warn', text: 'We could not find this pool burned or held in a locker we recognise, so whoever owns it may be able to withdraw it.' })
+    }
+  }
+
   // Confirmed-no-pools is a finding, not a blank. Only an unfinished market
   // check plus no simulation leaves us with genuinely nothing to say.
   const noSignals = safety === null && !marketChecked
@@ -334,6 +382,47 @@ function buildVerdict(
   return { tier: worst, ...copy[worst as Exclude<Tier, 'unknown'>], reasons }
 }
 
+/** The signed-in user's id, or null for a visitor. */
+async function resolveViewer(req: Request): Promise<string | null> {
+  const auth = req.headers.get('Authorization')
+  if (!auth) return null
+  try {
+    const { data } = await userClient(req).auth.getUser()
+    return data.user?.id ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A stable key for "this person", which is deliberately not an identity.
+ *
+ * Signed in, it is the user id, so the same person counts once however many
+ * devices they use. Otherwise it is a SHA-256 of the request's network
+ * identity salted with the token being scanned, which means the same visitor
+ * produces a different key for every token and cannot be followed across them.
+ * Nothing reversible is stored.
+ */
+async function actorKey(
+  req: Request,
+  viewer: string | null,
+  chainId: number,
+  address: string,
+): Promise<string | null> {
+  if (viewer) return `u:${viewer}`
+
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim()
+  const agent = req.headers.get('user-agent') ?? ''
+  if (!ip && !agent) return null
+
+  const material = `${ip}|${agent}|${chainId}:${address}`
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(material))
+  const hex = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+  return `a:${hex.slice(0, 32)}`
+}
+
 Deno.serve(async (req) => {
   const pre = preflight(req)
   if (pre) return pre
@@ -348,10 +437,27 @@ Deno.serve(async (req) => {
   const { chainId, address } = parsed.value
   const db = serviceClient()
 
+  /*
+   * Who is asking, as a stable key that is not an identity.
+   *
+   * A signed-in person is themselves wherever they are. Everyone else is keyed
+   * by a digest of the request's network identity, salted per token so the same
+   * key cannot be followed from one token to the next. The raw values are never
+   * stored, and the digest cannot be reversed into them.
+   */
+  const viewer = await resolveViewer(req)
+  const actor = await actorKey(req, viewer, chainId, address)
+
   // Counted before the cache check, because a cache hit is still someone asking
   // about this token. Counting misses only would under-count precisely the
   // tokens popular enough to stay warm — the ones the dashboard should feature.
-  await db.rpc('record_token_scan', { p_chain_id: chainId, p_address: address })
+  // The key is what stops a loop of requests buying a place on the dashboard:
+  // only a person's first look at a token moves the counter.
+  await db.rpc('record_token_scan', {
+    p_chain_id: chainId,
+    p_address: address,
+    p_actor_key: actor,
+  })
 
   // Serve a warm cache rather than re-billing every upstream for each visitor.
   if (url.searchParams.get('refresh') !== '1') {
@@ -363,27 +469,35 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (cached?.checked_at) {
-      const age = (Date.now() - new Date(cached.checked_at).getTime()) / 1000
-      if (age < CACHE_TTL_SECONDS) {
+      const cacheAgeSeconds = (Date.now() - new Date(cached.checked_at).getTime()) / 1000
+      if (cacheAgeSeconds < CACHE_TTL_SECONDS) {
         const fresh = await readCached(db, chainId, address)
-        if (fresh) return json({ ...fresh, cached: true }, 200, origin)
+        // Age and lock are read live and are not cached, so they come back as
+        // absent rather than as a stale or invented reading.
+        if (fresh) return json({ ...fresh, age: null, lock: null, cached: true }, 200, origin)
       }
     }
   }
 
   // All three in parallel with individual timeouts — the scan takes as long as
   // the slowest source, not the sum of them.
-  const [market, safety, source] = await Promise.all([
+  const registryKey = Deno.env.get('CONTRACT_REGISTRY_KEY')?.trim()
+
+  const [market, safety, source, age] = await Promise.all([
     timed(fetchMarket(chainId, address), 12_000),
     timed(fetchSafety(chainId, address), 7_000),
     timed(fetchSource(chainId, address), 7_000),
+    timed(contractAge(chainId, address, registryKey), 8_000),
   ])
 
   // `market` is the raw union; narrow it before anything downstream uses it.
   const marketChecked = market !== null
   const marketData: MarketData | null = market === 'none' || market === null ? null : market
 
-  const verdict = buildVerdict(marketData, safety, source, marketChecked)
+  // The lock check reuses the pool the market read already found.
+  const lock = await timed(liquidityLock(chainId, marketData?.deepestPool ?? null), 7_000)
+
+  const verdict = buildVerdict(marketData, safety, source, marketChecked, age, lock)
   const name = marketData?.name ?? safety?.contractName ?? source?.contractName ?? ''
   const symbol = marketData?.symbol ?? ''
 
@@ -436,20 +550,36 @@ Deno.serve(async (req) => {
     { onConflict: 'chain_id,address' },
   )
 
+  /*
+   * One reading, appended.
+   *
+   * `token_metrics` holds only the latest figures, so before this there was
+   * nothing to compare against: the watchlist could not say liquidity had been
+   * pulled, and any price curve in the UI would have been drawn from a single
+   * point. Density follows scan traffic, which makes this a series of
+   * observations rather than a feed — the UI has to say so.
+   */
+  if (marketData) {
+    await db.rpc('record_token_metrics', {
+      p_chain_id: chainId,
+      p_address: address,
+      p_price_usd: marketData.priceUsd,
+      p_liquidity_usd: marketData.liquidityUsd,
+      p_volume_24h_usd: marketData.volume24hUsd,
+      p_fdv_usd: marketData.fdvUsd,
+    })
+  }
+
   // Attribute the scan to the caller when signed in, which is what drives both
   // analytics and points. Anonymous scans still work; they just earn nothing.
-  const auth = req.headers.get('Authorization')
-  if (auth) {
-    const { data } = await userClient(req).auth.getUser()
-    if (data.user) {
-      await db.from('activity_events').insert({
-        user_id: data.user.id,
-        kind: 'token_scan',
-        chain_id: chainId,
-        subject: address,
-        subject_kind: 'token',
-      })
-    }
+  if (viewer) {
+    await db.from('activity_events').insert({
+      user_id: viewer,
+      kind: 'token_scan',
+      chain_id: chainId,
+      subject: address,
+      subject_kind: 'token',
+    })
   }
 
   return json(
@@ -457,6 +587,8 @@ Deno.serve(async (req) => {
       token: { chainId, address, name, symbol, verified: source?.verified ?? null },
       market: marketData,
       safety,
+      age,
+      lock,
       verdict,
       cached: false,
     },
@@ -483,6 +615,7 @@ async function readCached(db: ReturnType<typeof serviceClient>, chainId: number,
         pairCount: metrics.pair_count ?? 0,
         primaryVenue: metrics.primary_dex ?? null,
         name: token.name, symbol: token.symbol,
+        deepestPool: null,
       }
     : null
 
@@ -510,6 +643,8 @@ async function readCached(db: ReturnType<typeof serviceClient>, chainId: number,
     token: { chainId, address, name: token.name, symbol: token.symbol, verified: token.verified },
     market,
     safety,
-    verdict: buildVerdict(market, safety, source, marketChecked),
+    // The cache holds no age or lock reading, and inventing one here would put
+    // a finding on the page that no check produced.
+    verdict: buildVerdict(market, safety, source, marketChecked, null, null),
   }
 }
