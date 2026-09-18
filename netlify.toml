@@ -41,14 +41,18 @@
 # functions should be set to this site's origin once the domain is known.
 # While it is unset, CORS falls back to `*`.
 
-# Deploy previews and branch builds get the same treatment as production.
-# Without this, a preview silently builds with production's env and confuses
-# analytics — the Supabase project is chosen per-context in the Netlify UI.
-[context.production.environment]
-  NODE_ENV = "production"
-
-[context.deploy-preview.environment]
-  NODE_ENV = "production"
+# NODE_ENV is deliberately NOT set here.
+#
+# Setting it to "production" broke the build: npm omits devDependencies when
+# NODE_ENV=production, which took vite, @types/react-dom and @types/node out of
+# the install. The failure was confusing because typescript survives as a
+# transitive dependency, so `tsc` still ran and reported missing type
+# declarations rather than failing outright — which reads like the packages were
+# never declared, when they were there the whole time.
+#
+# Leaving it unset is also correct on its own terms: `vite build` always builds
+# in production mode regardless of NODE_ENV, so the output is identical and
+# nothing is gained by forcing it.
 
 # ── SPA routing ──────────────────────────────────────────────────────────────
 # React Router owns /dashboard, /token/:address, /wallet/:address, /admin and
