@@ -14,9 +14,32 @@
   # is a classic way for a build to start failing on a commit that changed
   # nothing. 22 is the current LTS and satisfies Vite 5's Node >= 18.
   NODE_VERSION = "22"
-  # `npm ci` from the committed lockfile — reproducible, and fails loudly if
-  # package.json and package-lock.json have drifted apart.
+  # Netlify already runs `npm ci` on its own because package-lock.json is
+  # committed, which is what makes the install reproducible and what makes it
+  # fail loudly if the lockfile and package.json have drifted apart. These
+  # flags only trim the noise and the needless network calls around it.
   NPM_FLAGS = "--prefer-offline --no-audit --no-fund"
+
+# ── Environment ──────────────────────────────────────────────────────────────
+# Set these under Site configuration → Environment variables, for every context
+# you deploy (production, deploy previews, branch deploys):
+#
+#   VITE_SUPABASE_URL       required — every scan, the trusted list, alerts and
+#                                      sign-in go through it
+#   VITE_SUPABASE_ANON_KEY  required — the publishable key, safe in the bundle
+#   VITE_CHAIN_ID           optional — network a fresh session starts on (8453)
+#   VITE_ALCHEMY_API_KEY    optional — without it, public RPCs are used, and
+#                                      they rate-limit
+#   VITE_RPC_URL_<chainId>  optional — per-network RPC override
+#
+# `npm run build` refuses to continue on CI when a required one is missing.
+# Without that check a misconfigured deploy builds perfectly and ships a site
+# where nothing works, because the app is written to degrade quietly rather
+# than crash — see scripts/check-env.mjs.
+#
+# One setting lives on Supabase rather than here: ALLOWED_ORIGINS on the edge
+# functions should be set to this site's origin once the domain is known.
+# While it is unset, CORS falls back to `*`.
 
 # Deploy previews and branch builds get the same treatment as production.
 # Without this, a preview silently builds with production's env and confuses

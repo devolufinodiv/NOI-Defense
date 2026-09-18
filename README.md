@@ -37,7 +37,46 @@ use — without it, a misconfigured override stays invisible until something
 quietly reads the wrong network.
 
 See **[BACKEND.md](BACKEND.md)** for the Supabase schema, edge functions and
-deploy steps (written, not yet deployed).
+deploy steps.
+
+## Deploying
+
+The frontend deploys to Netlify from `netlify.toml`; nothing needs configuring
+in the Netlify UI beyond the environment variables.
+
+| | |
+| --- | --- |
+| Build | `npm run build` |
+| Publish | `dist` |
+| Node | 22, pinned in `netlify.toml` |
+
+Required environment variables, for **every** context you deploy — production,
+deploy previews and branch deploys:
+
+| Variable | |
+| --- | --- |
+| `VITE_SUPABASE_URL` | Required. Every scan, the trusted list, alerts and sign-in go through it. |
+| `VITE_SUPABASE_ANON_KEY` | Required. The publishable key — safe to ship in the bundle. |
+| `VITE_CHAIN_ID` | Optional. Network a fresh session starts on. Defaults to Base. |
+| `VITE_ALCHEMY_API_KEY` | Optional. Without it the app uses public RPCs, which rate-limit. |
+| `VITE_RPC_URL_<chainId>` | Optional. Per-network RPC override. |
+
+`npm run build` refuses to continue on CI when a required variable is missing.
+The app is written to degrade quietly rather than crash, so without that check a
+misconfigured deploy builds perfectly and ships a site where nothing works. On a
+laptop the same check only warns, because building without a backend is a normal
+thing to do there.
+
+The build also verifies that the inline theme-boot script still matches the
+sha256 in the `netlify.toml` CSP, so editing that script cannot silently break
+the deployed page.
+
+Two things live outside Netlify:
+
+- **`ALLOWED_ORIGINS`** on the Supabase edge functions should be set to the
+  deployed origin once the domain is known. While unset, CORS falls back to `*`.
+- **The indexing worker** in `worker/` is a long-running process and does not
+  belong on Netlify — see BACKEND.md.
 
 **Status: landing page + Phase 0 (shell) + Phase 2 (token scanner).** Phase 1 — the real
 indexer/Alchemy reads — is deliberately skipped for now: `src/features/token/api.ts`
