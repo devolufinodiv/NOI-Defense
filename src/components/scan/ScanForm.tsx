@@ -5,9 +5,10 @@ import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/Button'
 import { extractAddress, isValidAddress, normalizeAddress } from '@/lib/address'
 import { useAddressKind } from '@/lib/useAddressRouter'
+import { preferredChain, useAddressChains } from '@/lib/useAddressChains'
 import { useChainStore } from '@/store/chain'
+import { chainMeta } from '@/config/chains'
 import { track } from '@/lib/analytics'
-import { ChainSelect } from './ChainSelect'
 
 export type ScanTarget = 'token' | 'wallet' | 'auto'
 
@@ -49,8 +50,8 @@ export function ScanForm({
 }) {
   const navigate = useNavigate()
   const resolveKind = useAddressKind()
+  const detectChains = useAddressChains()
   const chainId = useChainStore((state) => state.chainId)
-  const setChainId = useChainStore((state) => state.setChainId)
   const inputId = useId()
   const errorId = `${inputId}-error`
 
@@ -58,6 +59,8 @@ export function ScanForm({
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [ambiguous, setAmbiguous] = useState<`0x${string}` | null>(null)
+  /** What the network probe found, shown while the scan is being set up. */
+  const [detected, setDetected] = useState<string | null>(null)
 
   /** Pending auto-scan, and the address it already fired for. */
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -66,14 +69,18 @@ export function ScanForm({
   const copy = COPY[target]
   const large = size === 'lg'
 
-  function go(kind: 'token' | 'wallet', address: string) {
-    void track({ kind: 'search', chainId, subject: address, subjectKind: kind })
+  function go(kind: 'token' | 'wallet', address: string, on = chainId, also: number[] = []) {
+    void track({ kind: 'search', chainId: on, subject: address, subjectKind: kind })
     // Chain rides in the query string so a scan link is shareable and resolves
-    // to the same network for whoever opens it.
-    navigate(`/${kind}/${address}?chain=${chainId}`)
+    // to the same network for whoever opens it. `also` carries the other
+    // networks the same contract lives on, so the report can offer them rather
+    // than making someone come back and guess again.
+    const extra = also.length > 0 ? `&also=${also.join(',')}` : ''
+    navigate(`/${kind}/${address}?chain=${on}${extra}`)
     setValue('')
     setError(null)
     setAmbiguous(null)
+    setDetected(null)
   }
 
   /**
@@ -103,10 +110,39 @@ export function ScanForm({
       }
 
       setBusy(true)
-      const kind = await resolveKind(address, chainId)
+      setDetected('Checking networks…')
+
+      /*
+       * Find the networks the contract is actually on, instead of asking first.
+       * A wallet has no code anywhere, which is itself the answer: fall back to
+       * the selected network, since a wallet's balance is per-network and there
+       * is nothing to detect.
+       */
+      const { contracts, unreachable } = await detectChains(address)
+      const chosen = preferredChain(contracts, chainId)
+
+      if (chosen !== null) {
+        const others = contracts.filter((id) => id !== chosen)
+        setDetected(`Found on ${chainMeta(chosen)?.label ?? chosen}`)
+        setBusy(false)
+        go('token', address, chosen, others)
+        return
+      }
+
+      // No bytecode anywhere we could reach. If some networks did not answer we
+      // cannot call it a wallet, so ask rather than assert.
+      if (unreachable.length > 0 && contracts.length === 0) {
+        const kind = await resolveKind(address, chainId)
+        setBusy(false)
+        setDetected(null)
+        if (kind) go(kind, address)
+        else setAmbiguous(address)
+        return
+      }
+
       setBusy(false)
-      if (kind) go(kind, address)
-      else setAmbiguous(address)
+      setDetected(null)
+      go('wallet', address)
     },
     // `go` closes over navigate/chainId only, both stable enough for this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,9 +220,7 @@ export function ScanForm({
     <form onSubmit={onSubmit} className={cn('w-full', className)}>
       <div
         className={cn(
-          // Wraps on phones so the network picker gets its own row rather than
-          // being hidden — chain is not an optional detail when the same
-          // address resolves differently on every network.
+          // Wraps on phones so a long address and the button never collide.
           'glass-panel flex flex-wrap items-center gap-2 rounded-lg border p-1.5 sm:flex-nowrap',
           error ? 'border-negative/60' : 'border-hairline focus-within:border-hairline-strong',
         )}
@@ -222,11 +256,6 @@ export function ScanForm({
           )}
         />
 
-        <ChainSelect
-          chainId={chainId}
-          onChange={setChainId}
-          className="order-last w-full sm:order-none sm:w-auto"
-        />
 
         <button
           type="button"
@@ -249,6 +278,12 @@ export function ScanForm({
           )}
         </Button>
       </div>
+
+      {detected && !error ? (
+        <p className="mt-2 px-1 text-xs text-muted" role="status">
+          {detected}
+        </p>
+      ) : null}
 
       {error ? (
         <p id={errorId} role="alert" className="mt-2 flex items-start gap-2 text-xs text-negative">

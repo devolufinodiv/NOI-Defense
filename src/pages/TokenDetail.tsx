@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { TriangleAlert } from 'lucide-react'
 import { PageHeader } from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
+import { ChainMark } from '@/components/ui/ChainMark'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ScanForm } from '@/components/scan/ScanForm'
@@ -53,6 +54,22 @@ export function TokenDetail() {
     if (Number.isFinite(raw) && chainMeta(raw)) return raw
     return storeChainId
   }, [searchParams, storeChainId])
+
+  /**
+   * Other networks the same contract was found on during the scan.
+   *
+   * One address can be a real token on several chains at once, and they are
+   * different tokens with different liquidity and different risk. Carrying the
+   * list here means somebody who landed on the busiest one can still reach the
+   * others without pasting the address again.
+   */
+  const alsoOn = useMemo(() => {
+    const raw = searchParams.get('also') ?? ''
+    return raw
+      .split(',')
+      .map((part) => Number.parseInt(part, 10))
+      .filter((id) => Number.isFinite(id) && id !== chainId && chainMeta(id))
+  }, [searchParams, chainId])
 
   const network = chainMeta(chainId) ?? defaultChainMeta
   const valid = isValidAddress(address)
@@ -125,7 +142,26 @@ export function TokenDetail() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <TokenHistory chainId={chainId} address={address} />
+              {alsoOn.length > 0 ? (
+              <div className="glass-panel flex flex-wrap items-center gap-2 rounded-lg border border-hairline p-3 text-xs">
+                <span className="text-muted">This address is also a contract on</span>
+                {alsoOn.map((id) => (
+                  <Link
+                    key={id}
+                    to={`/token/${address}?chain=${id}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2 py-1 text-secondary transition-colors duration-180 hover:border-hairline-strong hover:text-primary"
+                  >
+                    <ChainMark chainId={id} size="xs" />
+                    {chainMeta(id)?.label ?? id}
+                  </Link>
+                ))}
+                <span className="w-full text-[11px] text-muted">
+                  Same address, different token — the figures above apply only to {network.label}.
+                </span>
+              </div>
+            ) : null}
+
+            <TokenHistory chainId={chainId} address={address} />
 
               <HolderMapLink chainId={chainId} address={address} subject="token" />
 
