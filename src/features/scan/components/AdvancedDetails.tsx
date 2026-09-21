@@ -1,55 +1,51 @@
 import { useState } from 'react'
 import { ChevronDown, Loader2, Microscope } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { Card, CardBody, CardHeader } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { TermLabel } from '@/components/ui/Explain'
-import { useAuth } from '@/store/auth'
-import {
-  useEarlyBuyers,
-  useHealthFactors,
-  useHolders,
-  useRequestIndexing,
-} from '@/features/token/queries'
-import { HealthBreakdown } from '@/features/token/components/HealthBreakdown'
-import { HolderDistribution } from '@/features/token/components/HolderDistribution'
-import { EarlyBuyers } from '@/features/token/components/EarlyBuyers'
+import { formatRelativeTime } from '@/lib/format'
+import { useHistoryCoverage } from '@/features/token/queries'
 
 /**
- * Deeper history, behind a disclosure.
+ * What we hold for this token, stated plainly.
  *
- * The default scan answers "is this safe?" in one screen. This is the layer for
- * someone who wants to read the book rather than the verdict — holder
- * distribution, the first buyers and whether they sold. Collapsed by default
- * because showing it up front is exactly what makes these tools intimidating.
+ * This panel used to render a holder breakdown, a list of first buyers and a
+ * scored health split — all of it generated from a hash of the contract
+ * address. A reader had no way to tell. It has been replaced with the one
+ * thing we can actually stand behind: how much of this token's transfer
+ * history has been ingested.
  *
- * The data comes from the background indexer, so it is absent until a deep
- * analysis has been run for this token.
+ * The rest returns when a backfill can establish that a token's history is
+ * complete. Balances derived from a partial history are not approximately
+ * right, they are wrong — and wrong in a shape that reads as authoritative.
  */
+
+function Line({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-b border-hairline py-2 last:border-b-0">
+      <span className="text-xs text-muted">{label}</span>
+      <span className="font-mono text-xs text-primary">{value}</span>
+    </div>
+  )
+}
+
+/** Seconds since the epoch, from an ISO timestamp we may not have. */
+function unix(iso: string | null): number | null {
+  if (!iso) return null
+  const ms = Date.parse(iso)
+  return Number.isFinite(ms) ? Math.floor(ms / 1000) : null
+}
+
 export function AdvancedDetails({
   chainId,
   address,
-  symbol,
 }: {
   chainId: number
   address: string
-  symbol: string
 }) {
   const [open, setOpen] = useState(false)
-  const { user } = useAuth()
 
   // Only fetch once opened: nobody should pay for queries they never look at.
-  const factors = useHealthFactors(chainId, address, open)
-  const holders = useHolders(chainId, address, open)
-  const buyers = useEarlyBuyers(chainId, address, open)
-  const indexing = useRequestIndexing(chainId, address)
-
-  const loading = factors.isLoading || holders.isLoading || buyers.isLoading
-  const hasData =
-    (factors.data?.length ?? 0) > 0 ||
-    (holders.data?.length ?? 0) > 0 ||
-    (buyers.data?.length ?? 0) > 0
+  const coverage = useHistoryCoverage(chainId, address, open)
+  const data = coverage.data
 
   return (
     <div className="glass-panel overflow-hidden rounded-xl border border-hairline">
@@ -65,11 +61,14 @@ export function AdvancedDetails({
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-medium text-primary">Dig deeper</span>
           <span className="block text-xs text-muted">
-            Who owns it, who bought first, and whether they sold. Optional.
+            What we have read from the chain for this token.
           </span>
         </span>
         <ChevronDown
-          className={cn('h-4 w-4 shrink-0 text-muted transition-transform duration-180', open && 'rotate-180')}
+          className={cn(
+            'h-4 w-4 shrink-0 text-muted transition-transform duration-180',
+            open && 'rotate-180',
+          )}
           strokeWidth={2}
           aria-hidden
         />
@@ -77,67 +76,80 @@ export function AdvancedDetails({
 
       {open ? (
         <div className="border-t border-hairline p-4">
-          {!hasData && !loading ? (
-            <div className="flex flex-col items-start gap-3 py-4">
-              <p className="max-w-prose text-sm leading-relaxed text-secondary">
-                Nobody has run the deep analysis for this token yet. It reads the token’s whole
-                history from the blockchain, which takes a minute or two and happens in the
-                background — you don’t have to wait here.
-              </p>
-              {user ? (
-                <Button
-                  variant="primary"
-                  onClick={() => indexing.mutate()}
-                  disabled={indexing.isPending || indexing.isSuccess}
-                >
-                  {indexing.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} aria-hidden />
-                      Starting…
-                    </>
-                  ) : indexing.isSuccess ? (
-                    'Queued — check back shortly'
-                  ) : (
-                    'Run the deep analysis'
-                  )}
-                </Button>
-              ) : (
-                <Badge tone="accent">Sign in to request this</Badge>
-              )}
-            </div>
+          {coverage.isLoading ? (
+            <p className="flex items-center gap-2 py-4 text-sm text-muted">
+              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} aria-hidden />
+              Checking what we hold…
+            </p>
+          ) : coverage.isError ? (
+            <p className="max-w-prose py-4 text-sm leading-relaxed text-secondary">
+              We could not reach our own records just now, so we cannot say what history
+              exists for this token. That is a problem on our side, not a finding about
+              the token.
+            </p>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-2">
-              <Card>
-                <CardHeader
-                  title={<TermLabel topic="concentration">How the score breaks down</TermLabel>}
-                  subtitle="Each check, scored separately"
-                />
-                <CardBody className="pt-4">
-                  <HealthBreakdown factors={factors.data} loading={factors.isLoading} />
-                </CardBody>
-              </Card>
+            <div className="space-y-4">
+              {data && data.transfers > 0 ? (
+                <>
+                  <p className="max-w-prose text-sm leading-relaxed text-secondary">
+                    We are recording this token’s transfers as they happen.
+                  </p>
+                  <div className="rounded-lg border border-hairline bg-raised/40 px-3">
+                    <Line
+                      label="Transfers recorded"
+                      value={data.transfers.toLocaleString()}
+                    />
+                    <Line
+                      label="Block range"
+                      value={
+                        data.firstBlock !== null && data.lastBlock !== null
+                          ? `${data.firstBlock.toLocaleString()} – ${data.lastBlock.toLocaleString()}`
+                          : 'Unknown'
+                      }
+                    />
+                    <Line
+                      label="Oldest recorded"
+                      value={
+                        unix(data.firstSeen) !== null
+                          ? formatRelativeTime(unix(data.firstSeen) as number)
+                          : 'Unknown'
+                      }
+                    />
+                    <Line
+                      label="Most recent"
+                      value={
+                        unix(data.lastSeen) !== null
+                          ? formatRelativeTime(unix(data.lastSeen) as number)
+                          : 'Unknown'
+                      }
+                    />
+                  </div>
+                </>
+              ) : data?.tracked ? (
+                <p className="max-w-prose text-sm leading-relaxed text-secondary">
+                  This token is on our watch list, but no transfers have reached us yet.
+                  We only record activity from the moment a token starts being followed,
+                  so a quiet token can sit here for a while.
+                </p>
+              ) : (
+                <p className="max-w-prose text-sm leading-relaxed text-secondary">
+                  We are not recording this token’s transfers. Add it to your watchlist
+                  and we will start following it from that point onward.
+                </p>
+              )}
 
-              <Card>
-                <CardHeader
-                  title={<TermLabel topic="holders">Biggest holders</TermLabel>}
-                  subtitle="Top 10 wallets by share of supply"
-                />
-                <CardBody className="pt-4">
-                  <HolderDistribution
-                    holders={holders.data}
-                    loading={holders.isLoading}
-                    symbol={symbol}
-                  />
-                </CardBody>
-              </Card>
-
-              <Card className="overflow-hidden xl:col-span-2">
-                <CardHeader
-                  title="First buyers"
-                  subtitle="Who got in earliest — and whether they are still holding"
-                />
-                <EarlyBuyers buyers={buyers.data} loading={buyers.isLoading} symbol={symbol} />
-              </Card>
+              {/*
+                Said out loud rather than left as an empty panel. A blank section
+                reads as "nothing to worry about"; this reads as "we have not
+                checked", which is the truth and a very different message.
+              */}
+              <p className="max-w-prose border-t border-hairline pt-4 text-xs leading-relaxed text-muted">
+                Holder distribution and first buyers are not shown yet. Both need a
+                token’s complete history, and we only have what has arrived since we
+                started watching — working them out from a partial record produces
+                numbers that look right and are not. We would rather show you nothing
+                than that.
+              </p>
             </div>
           )}
         </div>
