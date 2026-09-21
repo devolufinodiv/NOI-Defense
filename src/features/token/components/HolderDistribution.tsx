@@ -7,7 +7,11 @@ import { formatTokenAmount, formatPercent, truncateAddress } from '@/lib/format'
 import type { Holder } from '../types'
 
 /**
- * Top-10 holder distribution as a horizontal bar chart.
+ * Largest holders as a horizontal bar chart.
+ *
+ * Shares are of the tokens actually held, not of a declared total supply:
+ * anything sent to the burn address is gone, and counting it would quietly
+ * shrink every percentage below its real value.
  *
  * Bars are scaled to the largest holder, not to 100%, so differences between
  * ranks 4 and 9 stay visible — against a 100% axis the tail flattens into
@@ -45,11 +49,11 @@ export function HolderDistribution({
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted">
         <span>
-          Top 10 hold{' '}
+          Top {holders.length} hold{' '}
           <span className="tabular font-semibold text-primary">
             {formatPercent(top10Total)}
           </span>{' '}
-          of supply
+          of what is held
         </span>
         <Badge tone={top10Total > 60 ? 'negative' : top10Total > 40 ? 'warning' : 'positive'}>
           {top10Total > 60 ? 'Highly concentrated' : top10Total > 40 ? 'Concentrated' : 'Distributed'}
@@ -67,18 +71,24 @@ export function HolderDistribution({
                     #{holder.rank}
                   </span>
 
-                  {/* Contracts get no wallet-trace link: tracing a pool's P&L
-                      would be meaningless, so we don't offer the affordance. */}
-                  {holder.isContract ? (
-                    <span className="font-mono text-xs text-secondary">{label}</span>
-                  ) : (
+                  {/* Only a confirmed wallet gets a trace link. A contract's
+                      balance is not somebody's position, and an address we
+                      could not check might be either — offering the page in
+                      that case is a guess dressed as a fact. */}
+                  {holder.isContract === false ? (
                     <Link
                       to={`/wallet/${holder.address}`}
                       className="-my-2 py-2 font-mono text-xs text-primary transition-colors duration-180 hover:text-accent-text"
                     >
                       {label}
                     </Link>
+                  ) : (
+                    <span className="font-mono text-xs text-secondary">{label}</span>
                   )}
+
+                  {holder.isContract === true ? (
+                    <Badge tone="neutral">Contract</Badge>
+                  ) : null}
 
                   <CopyButton value={holder.address} label="Copy holder address" />
 

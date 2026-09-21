@@ -2,12 +2,7 @@ import { Badge } from '@/components/ui/Badge'
 import { HashRef } from '@/components/ui/Address'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { SkeletonRows } from '@/components/ui/Skeleton'
-import {
-  formatPercent,
-  formatRelativeTime,
-  formatTokenAmount,
-  formatUsd,
-} from '@/lib/format'
+import { formatPercent, formatRelativeTime, formatTokenAmount } from '@/lib/format'
 import type { EarlyBuyer, HoldStatus } from '../types'
 
 const STATUS_META: Record<HoldStatus, { label: string; tone: 'positive' | 'negative' | 'warning' }> =
@@ -37,16 +32,18 @@ function columns(symbol: string): Array<Column<EarlyBuyer>> {
       key: 'when',
       header: 'Bought',
       hideOnMobile: true,
-      sortValue: (buyer) => buyer.boughtAtUnix,
+      sortValue: (buyer) => buyer.boughtAtUnix ?? 0,
       render: (buyer) => (
         <span className="tabular text-secondary">
-          {formatRelativeTime(buyer.boughtAtUnix)}
+          {/* A delivery without a block timestamp gives us no time to show,
+              and a dash says that better than a fabricated one. */}
+          {buyer.boughtAtUnix === null ? '—' : formatRelativeTime(buyer.boughtAtUnix)}
         </span>
       ),
     },
     {
       key: 'amount',
-      header: 'Amount',
+      header: 'First buy',
       align: 'right',
       sortValue: (buyer) => buyer.amountRaw,
       render: (buyer) => (
@@ -54,16 +51,6 @@ function columns(symbol: string): Array<Column<EarlyBuyer>> {
           {formatTokenAmount(buyer.amountRaw, buyer.decimals, { compact: true })}{' '}
           <span className="font-normal text-muted">{symbol}</span>
         </span>
-      ),
-    },
-    {
-      key: 'price',
-      header: 'Buy price',
-      align: 'right',
-      hideOnMobile: true,
-      sortValue: (buyer) => buyer.buyPriceUsd,
-      render: (buyer) => (
-        <span className="tabular text-secondary">{formatUsd(buyer.buyPriceUsd)}</span>
       ),
     },
     {
@@ -89,7 +76,13 @@ function columns(symbol: string): Array<Column<EarlyBuyer>> {
 }
 
 /**
- * First buyers from the creation block.
+ * The first addresses ever to receive the token, and what became of them.
+ *
+ * Status is measured against the most each address ever held, not against its
+ * first buy: someone who bought more before selling would otherwise read as
+ * still holding. There is no buy price column — we store transfers, not the
+ * price at the time, and an invented one would be the most believable number
+ * on the page.
  *
  * Status is a labelled badge, never a bare colour — "Sold" and "Still holding"
  * must be distinguishable in greyscale, and this table is the one people

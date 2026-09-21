@@ -8,3 +8,8 @@ verify_jwt = false
 [functions.index-token]
 # Indexing costs real compute, so it must be attributable to a user.
 verify_jwt = true
+
+[functions.token-backfill]
+# Walking a token's whole history spends provider credits per call, so it must
+# be attributable to a user.
+verify_jwt = true

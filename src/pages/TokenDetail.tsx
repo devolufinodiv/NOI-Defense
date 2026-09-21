@@ -175,7 +175,11 @@ export function TokenDetail() {
               </div>
             </div>
 
-            <AdvancedDetails chainId={chainId} address={address} />
+            <AdvancedDetails
+              chainId={chainId}
+              address={address}
+              symbol={scan.data?.token.symbol ?? ''}
+            />
 
             {scan.data?.cached ? (
               <p className="text-center text-2xs text-muted">

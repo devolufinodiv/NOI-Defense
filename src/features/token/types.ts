@@ -42,24 +42,32 @@ export interface Holder {
   address: `0x${string}`
   balanceRaw: bigint
   decimals: number
-  /** Share of total supply, 0–100. */
+  /** Share of the tokens actually held, 0–100. Burned supply is not counted. */
   percentOfSupply: number
   /** e.g. "Liquidity pool", "Deployer" — omitted when unlabelled. */
   label?: string
-  /** Contracts are not wallets; the UI must not offer a wallet trace for them. */
-  isContract: boolean
+  /**
+   * true = bytecode present, false = plain wallet, null = we could not check.
+   * A wallet trace is only offered on `false`: tracing a pool's balance is
+   * meaningless, and guessing wrong on `null` offers a meaningless page.
+   */
+  isContract: boolean | null
 }
 
 export interface EarlyBuyer {
   rank: number
   address: `0x${string}`
   txHash: `0x${string}`
-  boughtAtUnix: number
+  /** null when the delivery carried no block timestamp. */
+  boughtAtUnix: number | null
+  /** Their first receipt. */
   amountRaw: bigint
+  /** The most they ever held, which is what a sale is measured against. */
+  peakRaw: bigint
+  currentRaw: bigint
   decimals: number
-  buyPriceUsd: number
   status: HoldStatus
-  /** Share of the original position still held, 0–100. */
+  /** Share of the peak position still held, 0–100. */
   remainingPercent: number
 }
 
