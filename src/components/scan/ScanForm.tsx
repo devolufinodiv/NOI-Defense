@@ -1,9 +1,9 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type ClipboardEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ClipboardPaste, Loader2, ScanLine, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/Button'
-import { isValidAddress, normalizeAddress } from '@/lib/address'
+import { extractAddress, isValidAddress, normalizeAddress } from '@/lib/address'
 import { useAddressKind } from '@/lib/useAddressRouter'
 import { useChainStore } from '@/store/chain'
 import { track } from '@/lib/analytics'
@@ -59,6 +59,10 @@ export function ScanForm({
   const [busy, setBusy] = useState(false)
   const [ambiguous, setAmbiguous] = useState<`0x${string}` | null>(null)
 
+  /** Pending auto-scan, and the address it already fired for. */
+  const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const startedFor = useRef<string | null>(null)
+
   const copy = COPY[target]
   const large = size === 'lg'
 
@@ -72,42 +76,102 @@ export function ScanForm({
     setAmbiguous(null)
   }
 
-  async function onSubmit(event: FormEvent) {
+  /**
+   * Runs the scan. Shared by the button and by the automatic trigger below, so
+   * a pasted address and a clicked one can never behave differently.
+   */
+  const run = useCallback(
+    async (query: string) => {
+      setError(null)
+      setAmbiguous(null)
+
+      if (!query) {
+        setError('Paste an address to scan.')
+        return
+      }
+      if (!isValidAddress(query)) {
+        setError('That is not a valid address. Expected 0x followed by 40 hex characters.')
+        return
+      }
+
+      // Canonical form everywhere: URL, cache keys, display.
+      const address = normalizeAddress(query)
+
+      if (target !== 'auto') {
+        go(target, address)
+        return
+      }
+
+      setBusy(true)
+      const kind = await resolveKind(address, chainId)
+      setBusy(false)
+      if (kind) go(kind, address)
+      else setAmbiguous(address)
+    },
+    // `go` closes over navigate/chainId only, both stable enough for this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [target, chainId, resolveKind],
+  )
+
+  function onSubmit(event: FormEvent) {
     event.preventDefault()
+    // A submit while the debounce is pending should win immediately.
+    if (autoTimer.current) clearTimeout(autoTimer.current)
+    void run(value.trim())
+  }
+
+  /**
+   * Scans as soon as the box holds a valid address, without waiting for a
+   * click.
+   *
+   * Debounced rather than immediate: typing an address character by character
+   * passes through several shorter strings, and the last one is the only one
+   * worth acting on. `startedFor` makes the scan fire once per address — the
+   * effect re-runs whenever anything in the form changes, and without it a
+   * failed classification would retry in a loop.
+   */
+  useEffect(() => {
+    const query = value.trim()
+
+    if (busy || ambiguous || !isValidAddress(query)) return
+    const address = normalizeAddress(query)
+    if (startedFor.current === address) return
+
+    autoTimer.current = setTimeout(() => {
+      startedFor.current = address
+      void run(query)
+    }, 320)
+
+    return () => {
+      if (autoTimer.current) clearTimeout(autoTimer.current)
+    }
+  }, [value, busy, ambiguous, run])
+
+  /**
+   * Pasting into the field.
+   *
+   * People paste explorer links and whole lines of text far more often than a
+   * bare address, so the address is lifted out of whatever arrives. Anything
+   * without exactly one address is left alone for the normal validation to
+   * report.
+   */
+  function onInputPaste(event: ClipboardEvent<HTMLInputElement>) {
+    const text = event.clipboardData.getData('text')
+    const found = extractAddress(text)
+    if (!found) return
+
+    event.preventDefault()
+    setValue(found)
     setError(null)
     setAmbiguous(null)
-
-    const query = value.trim()
-    if (!query) {
-      setError('Paste an address to scan.')
-      return
-    }
-    if (!isValidAddress(query)) {
-      setError('That is not a valid address. Expected 0x followed by 40 hex characters.')
-      return
-    }
-
-    // Canonical form everywhere: URL, cache keys, display.
-    const address = normalizeAddress(query)
-
-    if (target !== 'auto') {
-      go(target, address)
-      return
-    }
-
-    setBusy(true)
-    const kind = await resolveKind(address, chainId)
-    setBusy(false)
-    if (kind) go(kind, address)
-    else setAmbiguous(address)
   }
 
   /** Clipboard read needs a user gesture and can be denied — fail quietly. */
-  async function onPaste() {
+  async function onPasteButton() {
     try {
       const text = await navigator.clipboard.readText()
       if (text) {
-        setValue(text.trim())
+        setValue(extractAddress(text) ?? text.trim())
         setError(null)
         setAmbiguous(null)
       }
@@ -135,10 +199,13 @@ export function ScanForm({
         <input
           id={inputId}
           value={value}
+          onPaste={onInputPaste}
           onChange={(event) => {
             setValue(event.target.value)
             setError(null)
             setAmbiguous(null)
+            // Editing means this is a new attempt; let it scan again.
+            startedFor.current = null
           }}
           autoFocus={autoFocus}
           spellCheck={false}
@@ -163,7 +230,7 @@ export function ScanForm({
 
         <button
           type="button"
-          onClick={onPaste}
+          onClick={onPasteButton}
           aria-label="Paste from clipboard"
           title="Paste from clipboard"
           className="hidden h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-sm text-muted transition-colors duration-180 hover:bg-raised hover:text-primary sm:grid"

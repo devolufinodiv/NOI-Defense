@@ -22,3 +22,25 @@ export function isValidAddress(value: string): value is `0x${string}` {
 export function normalizeAddress(value: string): `0x${string}` {
   return getAddress(value.toLowerCase())
 }
+
+/**
+ * Pulls an address out of whatever was pasted.
+ *
+ * People rarely paste a bare address. They paste an explorer link, a line from
+ * a spreadsheet, a message with the address in the middle of it. Requiring a
+ * clean 0x… makes the box feel broken for input that plainly contains exactly
+ * what we need.
+ *
+ * Returns null when the text holds no address, or more than one — with two
+ * candidates there is no way to know which was meant, and picking one silently
+ * would send someone to a page about the wrong contract.
+ */
+export function extractAddress(text: string): `0x${string}` | null {
+  const matches = text.match(/0x[0-9a-fA-F]{40}/g)
+  if (!matches) return null
+
+  const unique = [...new Set(matches.map((m) => m.toLowerCase()))]
+  if (unique.length !== 1) return null
+
+  return isValidAddress(unique[0]) ? (unique[0] as `0x${string}`) : null
+}
