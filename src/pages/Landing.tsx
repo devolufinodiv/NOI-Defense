@@ -122,7 +122,12 @@ export function Landing() {
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
-            <ThemeToggle className="hidden sm:grid" />
+            {/* No display classes here. The control already hides its
+                segmented form below `sm` and shows a compact cycle instead;
+                passing `sm:grid` beat its own `sm:inline-flex` through the
+                class merge and stacked the three options into a column over
+                the nav. */}
+            <ThemeToggle />
             <Link to="/dashboard" className="hidden sm:block">
               <span className="text-sm text-secondary transition-colors duration-180 hover:text-primary">
                 Open app
