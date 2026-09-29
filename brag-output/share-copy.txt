@@ -1,0 +1,6 @@
+Every token scanner shows you a green tick. NOI Defense also tells you what it
+could not check — and refuses to show a holder breakdown until it has read the
+token's whole history, because a balance derived from half a record is not
+approximate, it is wrong.
+
+Paste any EVM address, token or wallet. About three seconds, no account.

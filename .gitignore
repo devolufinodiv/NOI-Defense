@@ -12,3 +12,13 @@ dist-ssr
 
 # Supabase CLI scratch
 supabase/.temp/
+
+# /brag video output. The finished brag.mp4, its poster and the share copy are
+# committed; the working parts are not — the raw render is a duplicate of
+# brag.mp4, work/ is scratch frames, and assets/ holds third-party music and
+# sound effects bundled with the skill, whose redistribution terms are theirs
+# to set rather than this repo's.
+brag-output/work/
+brag-output/composition/renders/
+brag-output/composition/assets/
+brag-output/composition/node_modules/
