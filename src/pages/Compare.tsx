@@ -90,7 +90,7 @@ export function Compare() {
         subtitle="Up to three tokens, side by side, on the things that decide between them."
       />
 
-      <div className="space-y-6 px-4 pb-12 pt-6 md:px-8">
+      <div className="aurora-field space-y-6 px-4 pb-12 pt-6 md:px-8">
         <form onSubmit={add} className="space-y-2">
           <div
             className={cn(

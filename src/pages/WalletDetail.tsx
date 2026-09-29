@@ -19,12 +19,20 @@ import { useChainStore } from '@/store/chain'
 import { ACCOUNT_COPY, HISTORY_GAP, useWalletTrace } from '@/features/wallet/queries'
 import { formatRelativeTime } from '@/lib/format'
 
+/**
+ * One figure, one tile.
+ *
+ * These used to sit in a four-up row inside the identity card, where the
+ * numbers that answer "how much, how often, how long" were visually subordinate
+ * to the address above them. On the grid they are peers, and each one is big
+ * enough to read at a glance.
+ */
 function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
-    <div className="min-w-0">
+    <div className="bento-tile col-span-6 min-w-0 rounded-lg border border-hairline p-4 lg:col-span-3">
       <div className="text-xs text-muted">{label}</div>
-      <div className="tabular mt-1 truncate text-lg font-semibold text-primary">{value}</div>
-      {hint ? <div className="mt-0.5 truncate text-2xs text-muted">{hint}</div> : null}
+      <div className="tabular mt-1.5 truncate text-xl font-semibold text-primary">{value}</div>
+      {hint ? <div className="mt-1 truncate text-2xs text-muted">{hint}</div> : null}
     </div>
   )
 }
@@ -68,7 +76,7 @@ export function WalletDetail() {
         subtitle="Balances and activity, read straight from the blockchain."
       />
 
-      <div className="w-full space-y-6 px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
+      <div className="aurora-field w-full space-y-6 px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
         <ScanForm target="wallet" />
 
         {!valid ? (
@@ -138,7 +146,11 @@ export function WalletDetail() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-6 gap-y-5 border-t border-hairline pt-5 sm:grid-cols-4">
+              </CardBody>
+            </Card>
+
+            {/* The four figures, as their own tiles on the grid. */}
+            <div className="bento">
                   <Stat
                     label={`Balance (${trace.data?.address.nativeSymbol ?? 'ETH'})`}
                     value={
@@ -188,13 +200,13 @@ export function WalletDetail() {
                           : unknown
                     }
                   />
-                </div>
-              </CardBody>
-            </Card>
+            </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <HolderMapLink chainId={chainId} address={address} subject="wallet" />
-              <div className="bento-tile rounded-lg border border-hairline p-4">
+            <div className="bento">
+              <div className="col-span-12 flex md:col-span-7 [&>*]:w-full">
+                <HolderMapLink chainId={chainId} address={address} subject="wallet" />
+              </div>
+              <div className="bento-tile col-span-12 rounded-lg border border-hairline p-4 md:col-span-5">
                 <WatchButton
                   chainId={chainId}
                   address={address}
@@ -219,8 +231,8 @@ export function WalletDetail() {
             ) : null}
 
             {history && history.counterparties.length > 0 ? (
-              <section className="grid gap-4 xl:grid-cols-2">
-                <div className="min-w-0">
+              <section className="bento">
+                <div className="col-span-12 min-w-0 xl:col-span-6">
                   <SectionHeading
                     eyebrow={<Eyebrow icon={<Users className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}>Most frequent</Eyebrow>}
                     title="Who it deals with"
@@ -244,7 +256,7 @@ export function WalletDetail() {
                   </Card>
                 </div>
 
-                <div className="min-w-0">
+                <div className="col-span-12 min-w-0 xl:col-span-6">
                   <SectionHeading eyebrow={<Eyebrow>Moved most often</Eyebrow>} title="Tokens touched" />
                   <Card className="overflow-hidden">
                     {history.tokens.length === 0 ? (

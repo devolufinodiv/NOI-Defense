@@ -152,9 +152,9 @@ export function Alerts() {
         }
       />
 
-      <div className="w-full space-y-6 px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="min-w-0 lg:col-span-2">
+      <div className="aurora-field w-full space-y-6 px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
+        <div className="bento">
+          <div className="col-span-12 min-w-0 lg:col-span-8">
             <SectionHeading eyebrow={<Eyebrow>Newest first</Eyebrow>} title="Alerts" />
             <Card className="overflow-hidden">
               {alerts.isLoading ? (
@@ -175,7 +175,7 @@ export function Alerts() {
             </Card>
           </div>
 
-          <div className="min-w-0">
+          <div className="col-span-12 min-w-0 lg:col-span-4">
             <SectionHeading eyebrow={<Eyebrow>Being watched</Eyebrow>} title="Your watchlist" />
             <Card className="overflow-hidden">
               {watchlist.isLoading ? (

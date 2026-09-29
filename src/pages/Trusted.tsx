@@ -63,7 +63,7 @@ export function Trusted() {
         subtitle="Tokens our team has chosen, and tokens that pass every check on their own. Each line shows what its latest scan found."
       />
 
-      <div className="space-y-5 px-4 pb-12 pt-6 md:px-8">
+      <div className="aurora-field space-y-5 px-4 pb-12 pt-6 md:px-8">
         <div className="space-y-3">
           <label className="bento-tile flex max-w-xl items-center gap-2 rounded-lg border border-hairline px-3 focus-within:border-hairline-strong">
             <Search className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.75} aria-hidden />

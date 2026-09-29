@@ -64,7 +64,8 @@ function Metric({
   loading: boolean
 }) {
   return (
-    <Card>
+    // Only ever used in the metrics row, so the tile owns its own span.
+    <Card className="col-span-12 sm:col-span-6 xl:col-span-3">
       <CardBody className="flex items-start gap-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-hairline bg-raised text-muted">
           {icon}
@@ -362,8 +363,8 @@ export function Admin() {
         subtitle="Users, scans and indexing health across every chain."
       />
 
-      <div className="w-full space-y-8 px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="aurora-field w-full space-y-8 px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
+        <section className="bento">
           <Metric
             label="Total users"
             value={overview.data?.users_total ?? 0}
@@ -439,8 +440,8 @@ export function Admin() {
               </div>
             }
           />
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <Card className="overflow-hidden">
+          <div className="bento">
+            <Card className="col-span-12 overflow-hidden xl:col-span-6">
               <CardHeader title="Tokens" subtitle="Ranked by scans, deduplicated by person" />
               {topTokens.isLoading ? (
                 <SkeletonRows rows={5} />
@@ -454,7 +455,7 @@ export function Admin() {
               )}
             </Card>
 
-            <Card className="overflow-hidden">
+            <Card className="col-span-12 overflow-hidden xl:col-span-6">
               <CardHeader title="Wallets" subtitle="Ranked by traces" />
               {topWallets.isLoading ? (
                 <SkeletonRows rows={5} />
@@ -470,8 +471,8 @@ export function Admin() {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-4 2xl:grid-cols-5">
-          <div className="min-w-0 2xl:col-span-3">
+        <section className="bento">
+          <div className="col-span-12 min-w-0 2xl:col-span-7">
             <SectionHeading eyebrow={<Eyebrow>Everyone</Eyebrow>} title="Users" />
             <Card className="overflow-hidden">
               {users.isLoading ? (
@@ -487,7 +488,7 @@ export function Admin() {
             </Card>
           </div>
 
-          <div className="min-w-0 2xl:col-span-2">
+          <div className="col-span-12 min-w-0 2xl:col-span-5">
             <SectionHeading
               eyebrow={
                 <Eyebrow

@@ -70,7 +70,7 @@ export function ScanEntry({ kind }: { kind: 'token' | 'wallet' }) {
         subtitle={copy.subtitle}
       />
 
-      <div className="w-full px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
+      <div className="aurora-field w-full px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
         <div className="w-full">
           <ScanForm target={kind} size="lg" autoFocus />
 
@@ -100,10 +100,10 @@ export function ScanEntry({ kind }: { kind: 'token' | 'wallet' }) {
             <h2 className="text-xs font-medium text-muted">
               {kind === 'token' ? 'Or start from a known contract' : 'Or start from a tracked wallet'}
             </h2>
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <ul className="bento mt-3">
               {kind === 'token'
                 ? MOCK_TOKENS.slice(0, 4).map((token) => (
-                    <li key={token.address}>
+                    <li key={token.address} className="col-span-12 sm:col-span-6 xl:col-span-3">
                       <Link
                         to={`/token/${token.address}`}
                         className="bento-tile is-interactive flex items-center gap-3 rounded-md border border-hairline p-3"
@@ -123,7 +123,7 @@ export function ScanEntry({ kind }: { kind: 'token' | 'wallet' }) {
                 : MOCK_WALLETS.slice(0, 4).map((wallet) => (
                     <li
                       key={wallet.address}
-                      className="bento-tile flex items-center gap-3 rounded-md border border-hairline p-3"
+                      className="bento-tile col-span-12 flex items-center gap-3 rounded-md border border-hairline p-3 sm:col-span-6 xl:col-span-3"
                     >
                       <HashRef
                         value={wallet.address}

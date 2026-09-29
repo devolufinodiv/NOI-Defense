@@ -94,7 +94,7 @@ export function TokenDetail() {
         subtitle="We run the checks that catch the most common ways people lose money."
       />
 
-      <div className="w-full space-y-6 px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
+      <div className="aurora-field w-full space-y-6 px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
         <ScanForm target="token" />
 
         {!valid ? (
@@ -130,17 +130,6 @@ export function TokenDetail() {
               loading={scan.isLoading}
             />
 
-            {/* Offered right under the verdict: the moment somebody decides a
-                token is worth following is while they are reading its scan. */}
-            <div className="bento-tile rounded-lg border border-hairline p-4">
-              <WatchButton
-                chainId={chainId}
-                address={address}
-                symbol={scan.data?.token.symbol}
-                name={scan.data?.token.name}
-              />
-            </div>
-
             <div className="bento">
               {alsoOn.length > 0 ? (
               <div className="bento-tile col-span-12 flex flex-wrap items-center gap-2 rounded-lg border border-hairline p-3 text-xs">
@@ -161,13 +150,26 @@ export function TokenDetail() {
               </div>
             ) : null}
 
-              {/* History is the tall one and earns the wider span; the two
-                  short blocks sit beside it rather than under it. */}
-              <div className="col-span-12 lg:col-span-7">
+              {/* History is the tall tile and earns the wide span; the short
+                  blocks stack beside it rather than under it, which is what
+                  stops the page becoming one long column of equal cards. */}
+              <div className="col-span-12 flex lg:col-span-8 [&>*]:w-full">
                 <TokenHistory chainId={chainId} address={address} />
               </div>
 
-              <div className="col-span-12 lg:col-span-5">
+              {/* Offered beside the verdict, not after it: the moment somebody
+                  decides a token is worth following is while they are reading
+                  its scan, not once they have scrolled past it. */}
+              <div className="bento-tile col-span-12 rounded-lg border border-hairline p-4 lg:col-span-4">
+                <WatchButton
+                  chainId={chainId}
+                  address={address}
+                  symbol={scan.data?.token.symbol}
+                  name={scan.data?.token.name}
+                />
+              </div>
+
+              <div className="col-span-12 flex lg:col-span-7 [&>*]:w-full">
                 <HolderMapLink chainId={chainId} address={address} subject="token" />
               </div>
 

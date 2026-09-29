@@ -81,9 +81,10 @@ export function Rewards() {
         subtitle="You earn these for doing your own research. That is the whole idea."
       />
 
-      <div className="w-full space-y-6 px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
-        <section className="grid gap-4 sm:grid-cols-3">
-          <Card>
+      <div className="aurora-field w-full space-y-6 px-4 pb-16 sm:px-6 md:px-8 xl:px-10">
+        {/* Three headline figures, equal weight, equal span. */}
+        <section className="bento">
+          <Card className="col-span-12 sm:col-span-4">
             <CardBody>
               <div className="text-xs text-muted">Total points</div>
               {points.isLoading ? (
@@ -95,7 +96,7 @@ export function Rewards() {
               )}
             </CardBody>
           </Card>
-          <Card>
+          <Card className="col-span-12 sm:col-span-4">
             <CardBody>
               <div className="text-xs text-muted">Earned today</div>
               {points.isLoading ? (
@@ -107,7 +108,7 @@ export function Rewards() {
               )}
             </CardBody>
           </Card>
-          <Card>
+          <Card className="col-span-12 sm:col-span-4">
             <CardBody>
               <div className="text-xs text-muted">Your position</div>
               {points.isLoading ? (
@@ -124,8 +125,8 @@ export function Rewards() {
           </Card>
         </section>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="overflow-hidden">
+        <div className="bento">
+          <Card className="col-span-12 overflow-hidden lg:col-span-6">
             <CardHeader title="Recent points" subtitle="Your last few awards" />
             {points.isLoading ? (
               <SkeletonRows rows={5} />
@@ -157,7 +158,7 @@ export function Rewards() {
             )}
           </Card>
 
-          <Card className="overflow-hidden">
+          <Card className="col-span-12 overflow-hidden lg:col-span-6">
             <CardHeader
               title="Top researchers"
               subtitle="Most points earned"
