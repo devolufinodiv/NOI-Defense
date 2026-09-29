@@ -34,7 +34,7 @@ export function VerdictCard({
 }) {
   if (loading || !verdict) {
     return (
-      <div className="glass-panel rounded-xl border border-hairline p-6">
+      <div className="bento-tile rounded-xl border border-hairline p-6">
         <div className="flex items-center gap-4">
           <Skeleton className="h-14 w-14 rounded-full" />
           <div className="flex-1 space-y-2">
@@ -58,7 +58,7 @@ export function VerdictCard({
   const reasons = [...verdict.reasons].sort((a, b) => order[a.tone] - order[b.tone])
 
   return (
-    <div className="glass-panel relative overflow-hidden rounded-xl border border-hairline">
+    <div className="bento-tile relative overflow-hidden rounded-xl border border-hairline">
       {/* Colour bar carries the verdict at a glance; the words carry it for
           anyone who cannot separate the colours. */}
       <div aria-hidden className={cn('absolute inset-x-0 top-0 h-1', style.bar)} />

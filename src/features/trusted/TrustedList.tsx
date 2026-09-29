@@ -34,7 +34,7 @@ export function TrustedList({ limit = 5 }: { limit?: number }) {
         real depth behind it. Not investment advice.
       </p>
 
-      <ul className="glass-panel mt-4 divide-y divide-hairline overflow-hidden rounded-xl border border-hairline">
+      <ul className="bento-tile mt-4 divide-y divide-hairline overflow-hidden rounded-xl border border-hairline">
         {trusted.isLoading
           ? Array.from({ length: limit }, (_, i) => (
               <li key={i} className="h-[62px] animate-pulse bg-raised/30" />

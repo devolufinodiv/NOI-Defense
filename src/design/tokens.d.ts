@@ -18,6 +18,9 @@ export interface Palette {
   warning: string
   glow: string
   shadowTop: string
+  /** Atmosphere only — never a value, verdict or delta. */
+  beam: string
+  beamAlt: string
   ash0: string
   ash1: string
   ash2: string

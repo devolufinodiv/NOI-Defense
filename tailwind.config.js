@@ -65,6 +65,9 @@ export default {
         hairline: v('border'),
         'hairline-strong': v('borderStrong'),
         glow: v('glow'),
+        // Atmosphere only. Reach for these on an edge, a grid or a glow —
+        // never on a number, a badge or a verdict.
+        beam: { DEFAULT: v('beam'), alt: v('beamAlt') },
         ash: {
           0: v('ash0'),
           1: v('ash1'),
@@ -100,14 +103,18 @@ export default {
         heading: '-0.02em',
         label: '0.06em',
       },
+      // Bento tiles need a generous corner: at 12px a large block reads as a
+      // rectangle with the corners knocked off, and the grid stops looking
+      // assembled. The small end is unchanged so controls keep their tension.
       borderRadius: {
         xs: '6px',
         sm: '8px',
         DEFAULT: '10px',
-        md: '12px',
-        lg: '16px',
-        xl: '20px',
-        '2xl': '24px',
+        md: '14px',
+        lg: '20px',
+        xl: '26px',
+        '2xl': '32px',
+        '3xl': '40px',
       },
       boxShadow: {
         // Depth from a lifted top edge, not a drop shadow.
@@ -119,6 +126,10 @@ export default {
           'inset 0 1px 0 0 rgb(var(--c-shadow-top) / 0.10), inset 0 -1px 0 0 rgb(0 0 0 / 0.22), 0 18px 44px -20px rgb(0 0 0 / 0.55)',
         'glass-lift':
           'inset 0 1px 0 0 rgb(var(--c-shadow-top) / 0.16), inset 0 -1px 0 0 rgb(0 0 0 / 0.24), 0 28px 64px -24px rgb(0 0 0 / 0.68)',
+        // The hovered tile. The beam sits in the shadow, not on the surface,
+        // so the colour reads as light spilling out from behind the glass.
+        'beam-lift':
+          'inset 0 1px 0 0 rgb(var(--c-shadow-top) / 0.18), 0 0 0 1px rgb(var(--c-beam) / 0.28), 0 28px 64px -26px rgb(var(--c-beam) / 0.45), 0 18px 44px -20px rgb(0 0 0 / 0.6)',
       },
       backgroundImage: {
         'glow-corner':
@@ -152,9 +163,25 @@ export default {
         // Faint engineering grid, used behind hero sections.
         'grid-fine':
           'linear-gradient(to right, rgb(var(--c-border) / 0.7) 1px, transparent 1px), linear-gradient(to bottom, rgb(var(--c-border) / 0.7) 1px, transparent 1px)',
+
+        // Two lights at opposite corners rather than one centred wash: a
+        // single radial reads as a vignette, two read as a room.
+        aurora:
+          'radial-gradient(48rem 34rem at 8% -6%, rgb(var(--c-beam) / 0.20) 0%, transparent 62%), radial-gradient(40rem 30rem at 96% 8%, rgb(var(--c-beam-alt) / 0.16) 0%, transparent 58%)',
+        // The bloom under a hero. Sits behind content, never over it.
+        'beam-bloom':
+          'radial-gradient(34rem 20rem at 50% 0%, rgb(var(--c-beam) / 0.22) 0%, rgb(var(--c-beam-alt) / 0.08) 45%, transparent 72%)',
+        // Lit hairline for a tile edge: bright where the light lands, gone by
+        // the bottom, so the ring never looks painted on.
+        'beam-edge':
+          'linear-gradient(145deg, rgb(var(--c-beam) / 0.55) 0%, rgb(var(--c-beam-alt) / 0.22) 26%, rgb(var(--c-shadow-top) / 0.05) 58%, transparent 82%)',
+        // Grid that picks up the beam instead of the border grey.
+        'grid-beam':
+          'linear-gradient(to right, rgb(var(--c-beam) / 0.13) 1px, transparent 1px), linear-gradient(to bottom, rgb(var(--c-beam) / 0.13) 1px, transparent 1px)',
       },
       backgroundSize: {
         'grid-fine': '56px 56px',
+        'grid-beam': '72px 72px',
       },
       transitionDuration: { DEFAULT: '180ms' },
       transitionTimingFunction: { DEFAULT: 'cubic-bezier(0.22, 0.61, 0.36, 1)' },
@@ -179,6 +206,12 @@ export default {
           '0%': { strokeDashoffset: 'var(--gauge-circumference)' },
           '100%': { strokeDashoffset: 'var(--gauge-offset)' },
         },
+        // Slow enough to be felt rather than watched. Anything quicker turns
+        // a background into something competing with the numbers on top of it.
+        'aurora-drift': {
+          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1)', opacity: '0.85' },
+          '50%': { transform: 'translate3d(2%, 1.5%, 0) scale(1.08)', opacity: '1' },
+        },
       },
       animation: {
         scan: 'scan 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite',
@@ -186,6 +219,7 @@ export default {
         'pulse-dot': 'pulse-dot 2.4s ease-in-out infinite',
         'rise-in': 'rise-in 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both',
         'gauge-sweep': 'gauge-sweep 900ms cubic-bezier(0.22, 0.61, 0.36, 1) both',
+        'aurora-drift': 'aurora-drift 22s ease-in-out infinite',
       },
     },
   },

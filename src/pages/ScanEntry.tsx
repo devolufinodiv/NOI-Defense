@@ -106,7 +106,7 @@ export function ScanEntry({ kind }: { kind: 'token' | 'wallet' }) {
                     <li key={token.address}>
                       <Link
                         to={`/token/${token.address}`}
-                        className="glass-panel flex items-center gap-3 rounded-md border border-hairline p-3 transition-colors duration-180 hover:border-hairline-strong"
+                        className="bento-tile is-interactive flex items-center gap-3 rounded-md border border-hairline p-3"
                       >
                         <TokenMark symbol={token.symbol} size="sm" />
                         <span className="min-w-0 flex-1">
@@ -123,7 +123,7 @@ export function ScanEntry({ kind }: { kind: 'token' | 'wallet' }) {
                 : MOCK_WALLETS.slice(0, 4).map((wallet) => (
                     <li
                       key={wallet.address}
-                      className="glass-panel flex items-center gap-3 rounded-md border border-hairline p-3"
+                      className="bento-tile flex items-center gap-3 rounded-md border border-hairline p-3"
                     >
                       <HashRef
                         value={wallet.address}

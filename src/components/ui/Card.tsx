@@ -9,12 +9,17 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Elevated panel.
+ * Elevated panel — the bento tile every surface in the app is built from.
  *
- * In dark mode this is real glass: a translucent ash gradient over a blurred
- * backdrop, with a top-lit hairline that falls off down the edge. In light mode
- * it collapses to a crisp opaque card — stacked translucency on white reads as
- * muddy, not premium. Both live in the `.glass-panel` rule in index.css.
+ * Real glass in both modes: a translucent ash gradient over a blurred backdrop,
+ * ringed by a lit 1px edge that is bright where the light lands and gone by the
+ * bottom. Light mode raises the opacity and softens the shadow, because the
+ * same alpha that reads as depth on black reads as dirt on white. The whole
+ * treatment lives in `.bento-tile` in index.css.
+ *
+ * The hairline border stays underneath the lit ring on purpose: it is what
+ * draws the tile on a browser without `backdrop-filter`, where the glass
+ * collapses to a flat fill and the ring has nothing to sit on.
  */
 export function Card({
   className,
@@ -26,9 +31,8 @@ export function Card({
   return (
     <div
       className={cn(
-        'glass-panel relative overflow-hidden rounded-xl border border-hairline',
-        interactive &&
-          'cursor-pointer transition-[transform,border-color,box-shadow] duration-180 hover:-translate-y-0.5 hover:border-hairline-strong hover:shadow-glass-lift',
+        'bento-tile relative overflow-hidden rounded-xl border border-hairline',
+        interactive && 'is-interactive cursor-pointer',
         className,
       )}
       {...props}

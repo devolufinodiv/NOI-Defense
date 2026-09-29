@@ -132,7 +132,7 @@ export function TokenDetail() {
 
             {/* Offered right under the verdict: the moment somebody decides a
                 token is worth following is while they are reading its scan. */}
-            <div className="glass-panel rounded-lg border border-hairline p-4">
+            <div className="bento-tile rounded-lg border border-hairline p-4">
               <WatchButton
                 chainId={chainId}
                 address={address}
@@ -141,9 +141,9 @@ export function TokenDetail() {
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="bento">
               {alsoOn.length > 0 ? (
-              <div className="glass-panel flex flex-wrap items-center gap-2 rounded-lg border border-hairline p-3 text-xs">
+              <div className="bento-tile col-span-12 flex flex-wrap items-center gap-2 rounded-lg border border-hairline p-3 text-xs">
                 <span className="text-muted">This address is also a contract on</span>
                 {alsoOn.map((id) => (
                   <Link
@@ -161,11 +161,17 @@ export function TokenDetail() {
               </div>
             ) : null}
 
-            <TokenHistory chainId={chainId} address={address} />
+              {/* History is the tall one and earns the wider span; the two
+                  short blocks sit beside it rather than under it. */}
+              <div className="col-span-12 lg:col-span-7">
+                <TokenHistory chainId={chainId} address={address} />
+              </div>
 
-              <HolderMapLink chainId={chainId} address={address} subject="token" />
+              <div className="col-span-12 lg:col-span-5">
+                <HolderMapLink chainId={chainId} address={address} subject="token" />
+              </div>
 
-              <div className="glass-panel rounded-lg border border-hairline p-4">
+              <div className="bento-tile col-span-12 rounded-lg border border-hairline p-4 lg:col-span-5">
                 <h3 className="text-sm font-medium text-primary">Before you buy</h3>
                 <ul className="mt-2.5 space-y-2 text-xs leading-relaxed text-secondary">
                   <li>Check the address matches the project’s official site, character for character.</li>

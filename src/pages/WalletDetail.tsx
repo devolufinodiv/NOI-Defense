@@ -194,7 +194,7 @@ export function WalletDetail() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <HolderMapLink chainId={chainId} address={address} subject="wallet" />
-              <div className="glass-panel rounded-lg border border-hairline p-4">
+              <div className="bento-tile rounded-lg border border-hairline p-4">
                 <WatchButton
                   chainId={chainId}
                   address={address}

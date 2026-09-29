@@ -29,7 +29,7 @@ export function FeaturedScanCard({ token }: { token: FeaturedToken }) {
   return (
     <Link
       to={`/token/${token.address}?chain=${token.chainId}`}
-      className="glass-panel group flex items-center gap-3 rounded-xl border border-hairline p-3 transition-[transform,border-color] duration-180 hover:-translate-y-0.5 hover:border-hairline-strong"
+      className="bento-tile is-interactive group flex items-center gap-3 rounded-xl border border-hairline p-3"
     >
       <TokenMark symbol={token.symbol || '?'} size="md" chainId={token.chainId} address={token.address} />
 

@@ -144,11 +144,144 @@
       bg-raised/60 px-2.5 py-1 text-2xs font-medium text-secondary;
   }
 
+  /* ── Bento ──────────────────────────────────────────────────────────────
+     Twelve columns at every breakpoint, never six-then-two. A grid that
+     changes its track count needs every tile to restate its span for every
+     size, and the one tile somebody forgets spills into an implicit column
+     and drags a horizontal scrollbar across the page. Tiles narrow by
+     changing their own span — col-span-12 md:col-span-6 lg:col-span-4 — and
+     the container stays still underneath them. */
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  @screen md {
+    .bento {
+      gap: 1rem;
+    }
+  }
+
+  /* Rows only where tiles are meant to share a height. Left to `auto`, a
+     bento is just cards; on a fixed row unit, tall and short tiles line up
+     along the same rhythm, which is the whole point of the layout. */
+  .bento-rows {
+    grid-auto-rows: minmax(9rem, auto);
+  }
+
+  /* The tile. Glass, a lit edge, and a lift on hover that reads as the light
+     behind it strengthening rather than the box growing. */
+  .bento-tile {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: theme('borderRadius.lg');
+    background-image: theme('backgroundImage.ash-card'), theme('backgroundImage.ash-panel');
+    background-color: rgb(var(--c-card) / 0.72);
+    backdrop-filter: blur(22px) saturate(155%);
+    -webkit-backdrop-filter: blur(22px) saturate(155%);
+    box-shadow: theme('boxShadow.glass');
+    transition:
+      box-shadow 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* The lit ring, masked to 1px so no wrapper element is needed. */
+  .bento-tile::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    padding: 1px;
+    background-image: theme('backgroundImage.beam-edge');
+    opacity: 0.55;
+    transition: opacity 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Only tiles that actually go somewhere respond to the pointer. A hover
+     state on a tile you cannot click is a promise the interface breaks. */
+  .bento-tile.is-interactive:hover {
+    box-shadow: theme('boxShadow.beam-lift');
+    transform: translateY(-2px);
+  }
+  .bento-tile.is-interactive:hover::before {
+    opacity: 1;
+  }
+
+  :root[data-theme='light'] .bento-tile,
+  :root:not([data-theme='dark']) .bento-tile {
+    background-color: rgb(var(--c-card) / 0.82);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.9),
+      0 1px 2px 0 rgb(16 16 20 / 0.05),
+      0 14px 36px -18px rgb(16 16 20 / 0.16);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .bento-tile {
+      background-color: rgb(var(--c-card) / 0.72);
+      box-shadow: theme('boxShadow.glass');
+    }
+  }
+
+  /* ── Atmosphere ─────────────────────────────────────────────────────────
+     Two drifting lights behind a section. Pointer-events off and z-index
+     below content, so nothing here can ever intercept a click. */
+  .aurora-field {
+    position: relative;
+    isolation: isolate;
+  }
+  /* Inset to zero, not bled past the edges. An absolutely positioned child
+     that overhangs its container still extends the document's scroll area, and
+     a soft light nobody can see is not worth half a screen of dead scroll at
+     the bottom of every page. The blur and the gradient's own falloff give the
+     spread; the box stays inside the section. */
+  .aurora-field::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: theme('backgroundImage.aurora');
+    filter: blur(28px);
+    animation: aurora-drift 22s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Display type lit by the beam rather than the chrome ramp. For the one
+     heading per view that is meant to carry the whole page. */
+  .beam-text {
+    color: rgb(var(--c-text-primary));
+  }
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    .beam-text {
+      background-image: linear-gradient(
+        118deg,
+        rgb(var(--c-chrome-0)) 0%,
+        rgb(var(--c-chrome-1)) 34%,
+        rgb(var(--c-beam)) 62%,
+        rgb(var(--c-beam-alt)) 88%
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+  }
+
   /* Backdrop blur is a real cost on low-end GPUs and a known jank source when
      the surface behind it scrolls. Drop to a solid fill where unsupported. */
   @supports not (backdrop-filter: blur(1px)) {
     .glass,
-    .glass-panel {
+    .glass-panel,
+    .bento-tile {
       background-color: rgb(var(--c-card));
     }
   }

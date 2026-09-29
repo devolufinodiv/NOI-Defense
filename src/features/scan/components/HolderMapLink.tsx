@@ -26,7 +26,7 @@ export function HolderMapLink({
       href={href}
       target="_blank"
       rel="noreferrer noopener"
-      className="glass-panel group flex items-center gap-3 rounded-lg border border-hairline p-4 transition-colors duration-180 hover:border-hairline-strong"
+      className="bento-tile is-interactive group flex items-center gap-3 rounded-lg border border-hairline p-4"
     >
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-hairline bg-raised text-secondary">
         <Network className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />

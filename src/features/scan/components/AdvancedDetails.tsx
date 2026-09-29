@@ -97,7 +97,7 @@ export function AdvancedDetails({
   const running = backfill.isPending || data?.status === 'running'
 
   return (
-    <div className="glass-panel overflow-hidden rounded-xl border border-hairline">
+    <div className="bento-tile overflow-hidden rounded-xl border border-hairline">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

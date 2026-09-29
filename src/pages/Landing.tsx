@@ -148,6 +148,13 @@ export function Landing() {
           className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-base"
         />
 
+        {/* Beam bloom above the fold. Sits over the scrim but under the copy,
+            so the headline gains a light source without losing contrast. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[60%] bg-beam-bloom"
+        />
+
         <div className="relative mx-auto w-full max-w-3xl px-4 text-center">
           <Reveal>
             <span className="chip mx-auto">Free · no account needed</span>
@@ -157,7 +164,10 @@ export function Landing() {
             <h1 className="mt-7 text-[clamp(2.75rem,9vw,5.25rem)] font-light leading-[0.95] tracking-tightest text-primary">
               Check before
               <br />
-              <span className="chrome-text font-semibold">you buy.</span>
+              {/* The one heading in the app lit by the beam rather than the
+                  chrome ramp. Used once, on purpose — a second would make
+                  neither of them the thing you look at first. */}
+              <span className="beam-text font-semibold">you buy.</span>
             </h1>
           </Reveal>
 

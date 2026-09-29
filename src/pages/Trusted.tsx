@@ -65,7 +65,7 @@ export function Trusted() {
 
       <div className="space-y-5 px-4 pb-12 pt-6 md:px-8">
         <div className="space-y-3">
-          <label className="glass-panel flex max-w-xl items-center gap-2 rounded-lg border border-hairline px-3 focus-within:border-hairline-strong">
+          <label className="bento-tile flex max-w-xl items-center gap-2 rounded-lg border border-hairline px-3 focus-within:border-hairline-strong">
             <Search className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.75} aria-hidden />
             <input
               value={query}
@@ -130,7 +130,7 @@ export function Trusted() {
             </CardBody>
           </Card>
         ) : list.isLoading ? (
-          <ul className="glass-panel divide-y divide-hairline overflow-hidden rounded-xl border border-hairline">
+          <ul className="bento-tile divide-y divide-hairline overflow-hidden rounded-xl border border-hairline">
             {Array.from({ length: 6 }, (_, i) => (
               <li key={i} className="h-[62px] animate-pulse bg-raised/30" />
             ))}
@@ -147,7 +147,7 @@ export function Trusted() {
             </CardBody>
           </Card>
         ) : (
-          <ul className="glass-panel divide-y divide-hairline overflow-hidden rounded-xl border border-hairline">
+          <ul className="bento-tile divide-y divide-hairline overflow-hidden rounded-xl border border-hairline">
             {visible.map((token) => (
               <TrustedRow key={`${token.chainId}:${token.address}`} token={token} showNote />
             ))}

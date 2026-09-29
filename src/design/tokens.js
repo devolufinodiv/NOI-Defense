@@ -5,10 +5,18 @@
  * transform) and application code (typed via the tokens.d.ts sidecar). Charts
  * and the graph canvas need raw hex at runtime, which CSS variables can't give.
  *
- * Direction: chrome on black. A neutral monochrome system — no blue cast, no
- * hue in the accent — so the only chromatic signals are semantic: green gain,
- * red loss, amber caution, plus token brand marks for identity. Surfaces are
- * glass in both modes; headings get a brushed-metal gradient.
+ * Direction: chrome on black, arranged as glass tiles on a bento grid. A
+ * neutral monochrome system — no hue in the accent — so the only chromatic
+ * signals are semantic: green gain, red loss, amber caution, plus token brand
+ * marks for identity. Surfaces are glass in both modes; headings get a
+ * brushed-metal gradient.
+ *
+ * `beam` is the one deliberate exception, and it is an exception about light
+ * rather than about meaning. It lights edges, grids, focus rings and the hero
+ * atmosphere — the places a colour says "this is alive", never "this number is
+ * good". Nothing that carries a finding may use it: the moment a chromatic
+ * accent appears next to data, a reader starts decoding it, and it means
+ * nothing. Semantic colour stays scarce so it stays legible.
  *
  * Every text/surface pairing in BOTH modes is verified at >= 4.5:1 (WCAG AA
  * normal text). Tightest pair: muted-on-raised, 5.02 dark / 4.80 light.
@@ -43,6 +51,14 @@ export const palette = {
     glow: '#9A9AA4',
     /** Top inner highlight that gives surfaces their lift. */
     shadowTop: '#FFFFFF',
+
+    /**
+     * Atmosphere only. Edge light, grid lines, focus, hero bloom — never a
+     * value, a verdict or a delta. See the note at the top of this file.
+     */
+    beam: '#4CE3FF',
+    /** The far end of the beam gradient. Cyan into violet reads as depth. */
+    beamAlt: '#8B7BFF',
 
     /** Ash ramp — the graphite the gradients are built from. */
     ash0: '#050506',
@@ -81,6 +97,11 @@ export const palette = {
 
     glow: '#B4B4BE',
     shadowTop: '#FFFFFF',
+
+    // Re-picked rather than reused: the cyan that glows on black turns to
+    // vapour on white, and an atmosphere you cannot see is not an atmosphere.
+    beam: '#0B7FC4',
+    beamAlt: '#5B45E0',
 
     // The ash ramp inverts to a paper ramp so the same gradient utilities read
     // correctly in both modes instead of being dark-only.

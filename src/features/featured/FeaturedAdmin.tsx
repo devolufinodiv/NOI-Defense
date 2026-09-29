@@ -65,7 +65,7 @@ export function FeaturedAdmin() {
         <form onSubmit={submit} className="space-y-2">
           <div
             className={cn(
-              'glass-panel flex flex-wrap items-center gap-2 rounded-lg border p-1.5 sm:flex-nowrap',
+              'bento-tile flex flex-wrap items-center gap-2 rounded-lg border p-1.5 sm:flex-nowrap',
               pin.isError ? 'border-negative/60' : 'border-hairline focus-within:border-hairline-strong',
             )}
           >

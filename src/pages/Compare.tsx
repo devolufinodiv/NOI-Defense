@@ -94,7 +94,7 @@ export function Compare() {
         <form onSubmit={add} className="space-y-2">
           <div
             className={cn(
-              'glass-panel flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border p-1.5 sm:flex-nowrap',
+              'bento-tile flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border p-1.5 sm:flex-nowrap',
               error ? 'border-negative/60' : 'border-hairline focus-within:border-hairline-strong',
             )}
           >

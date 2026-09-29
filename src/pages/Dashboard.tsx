@@ -57,7 +57,9 @@ export function Dashboard() {
         subtitle="Everything you are watching, and everything that moved while you were away."
       />
 
-      <div className="space-y-10 px-4 pb-12 pt-6 md:px-8">
+      {/* The desk sits in its own light. Atmosphere is behind the content and
+          pointer-events none, so nothing here can intercept a click. */}
+      <div className="aurora-field space-y-10 px-4 pb-12 pt-6 md:px-8">
         {/* Featured token scans */}
         <section>
           <SectionHeading
@@ -73,15 +75,23 @@ export function Dashboard() {
             }
           />
           {featured.isLoading ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="bento">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="h-[74px] animate-pulse rounded-xl border border-hairline bg-raised/40" />
+                <div
+                  key={i}
+                  className="col-span-12 h-[74px] animate-pulse rounded-xl border border-hairline bg-raised/40 sm:col-span-6 xl:col-span-4"
+                />
               ))}
             </div>
           ) : featured.data && featured.data.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="bento">
               {featured.data.map((token) => (
-                <FeaturedScanCard key={`${token.chainId}:${token.address}`} token={token} />
+                <div
+                  key={`${token.chainId}:${token.address}`}
+                  className="col-span-12 sm:col-span-6 xl:col-span-4"
+                >
+                  <FeaturedScanCard token={token} />
+                </div>
               ))}
             </div>
           ) : (
@@ -98,8 +108,8 @@ export function Dashboard() {
         </section>
 
         {/* Watchlist + alerts */}
-        <section className="grid gap-4 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+        <section className="bento">
+          <Card className="col-span-12 lg:col-span-8">
             <CardHeader
               title={
                 <span className="flex flex-wrap items-center gap-2">
@@ -168,7 +178,7 @@ export function Dashboard() {
             </CardBody>
           </Card>
 
-          <Card>
+          <Card className="col-span-12 lg:col-span-4">
             <CardHeader
               title={
                 <span className="flex flex-wrap items-center gap-2">
